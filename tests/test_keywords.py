@@ -22,9 +22,9 @@ def test_four_calendars_exist():
 @pytest.mark.parametrize("path", CSVS, ids=lambda p: p.stem)
 def test_calendar_is_complete(path):
     rows = kw.load(path)
-    assert len(rows) == 100
-    assert len({r.id for r in rows}) == 100
-    assert len({r.keyword for r in rows}) == 100
+    assert len(rows) >= 100  # 처음 100개 + 직접 추가한 키워드
+    assert len({r.id for r in rows}) == len(rows)
+    assert len({r.keyword for r in rows}) == len(rows)
     assert {r.month for r in rows} == set(range(1, 13))
     for r in rows:
         assert 1 <= r.week <= 4

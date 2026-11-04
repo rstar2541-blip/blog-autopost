@@ -129,7 +129,7 @@ def to_html(draft: Draft, align: str = "left") -> str:
   .guide h2 {{ font-size: 15px; margin: 0 0 8px; }}
   .guide ul {{ margin: 6px 0 0; padding-left: 20px; }}
   .guide button {{ margin-top: 12px; padding: 8px 14px; border: 0; border-radius: 6px; background: #03c75a; color: #fff; font-weight: 700; cursor: pointer; }}
-  #post table {{ border-collapse: collapse; width: 100%; }}
+  #post table {{ border-collapse: collapse; display: block; max-width: 100%; overflow-x: auto; }}
   #post th, #post td {{ border: 1px solid #ddd; padding: 6px 10px; }}
   #post blockquote {{ margin: 0; padding: 8px 14px; border-left: 4px solid #ccc; color: #555; background: #fafafa; }}
 </style>
