@@ -8,6 +8,7 @@ from pathlib import Path
 
 PLATFORMS = {"naver", "wordpress"}
 ENGINES = {"template", "claude"}
+ALIGNS = {"left", "center"}
 
 
 @dataclass
@@ -21,6 +22,9 @@ class TopicConfig:
     max_per_day: int = 1
     disclaimer: str = ""
     wp_env_prefix: str = ""
+    voice: str = ""      # 문체 가이드 파일 경로 (style/voice_*.md)
+    greeting: str = ""   # 첫 줄 인사 (비우면 [author] greeting)
+    voice_text: str = field(default="", repr=False)
 
 
 @dataclass
@@ -39,6 +43,7 @@ class Config:
     drafts_dir: Path
     generator: GeneratorConfig
     topics: dict[str, TopicConfig] = field(default_factory=dict)
+    align: str = "left"   # 붙여넣기용 HTML 정렬 (left | center)
 
     def topic(self, key: str) -> TopicConfig:
         if key not in self.topics:
@@ -73,11 +78,22 @@ def load_config(path: str | Path = "config.toml") -> Config:
     if gen.engine not in ENGINES:
         raise ValueError(f"generator.engine은 {sorted(ENGINES)} 중 하나여야 합니다: {gen.engine}")
 
+    render = data.get("render", {})
+    align = render.get("align", "left")
+    if align not in ALIGNS:
+        raise ValueError(f"render.align은 {sorted(ALIGNS)} 중 하나여야 합니다: {align}")
+
     topics: dict[str, TopicConfig] = {}
     for key, raw in data.get("topics", {}).items():
         raw = dict(raw)
         raw["csv"] = root / raw["csv"]
         topic = TopicConfig(key=key, **raw)
+        topic.greeting = topic.greeting or author.get("greeting", "")
+        if topic.voice:
+            voice_path = root / topic.voice
+            if not voice_path.is_file():
+                raise ValueError(f"topics.{key}.voice 파일이 없습니다: {topic.voice}")
+            topic.voice_text = voice_path.read_text(encoding="utf-8").strip()
         if topic.platform not in PLATFORMS:
             raise ValueError(f"topics.{key}.platform은 {sorted(PLATFORMS)} 중 하나여야 합니다")
         if topic.platform == "wordpress" and not topic.wp_env_prefix:
@@ -90,4 +106,5 @@ def load_config(path: str | Path = "config.toml") -> Config:
         drafts_dir=root / data.get("drafts_dir", "drafts"),
         generator=gen,
         topics=topics,
+        align=align,
     )

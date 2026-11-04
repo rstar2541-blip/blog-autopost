@@ -14,6 +14,7 @@ def workspace(tmp_path, monkeypatch):
     """실제 config.toml과 키워드 CSV를 임시 폴더에 복사해서 사용."""
     shutil.copy(ROOT / "config.toml", tmp_path / "config.toml")
     shutil.copytree(ROOT / "keywords", tmp_path / "keywords")
+    shutil.copytree(ROOT / "style", tmp_path / "style")
     monkeypatch.chdir(tmp_path)
     return tmp_path
 
@@ -55,7 +56,7 @@ def test_next_by_id_and_force(workspace, capsys):
     files = list((workspace / "drafts" / "landscaping").glob("*LS-021*.md"))
     assert len(files) == 1
     text = files[0].read_text(encoding="utf-8")
-    assert "{지역}" not in text and "우리 지역 조경업체" in text  # region이 비어 있으면 기본값
+    assert "{지역}" not in text and "울산 조경업체" in text  # config.toml의 region
     assert run("next", "--id", "LS-021", "--engine", "template") == 1
     assert run("next", "--id", "LS-021", "--engine", "template", "--force") == 0
 
@@ -113,3 +114,12 @@ def test_publish_requires_wordpress_and_blocks_unfilled(workspace, capsys, monke
     assert "📷 사진" in posted[0][1]
     rows = kw.load(workspace / "keywords" / "04_bmw.csv")
     assert rows[0].post_url == "https://wp.example/?p=5" and rows[0].status == "draft"
+
+
+def test_drafts_use_voice_greeting_and_center_align(workspace):
+    assert run("next", "--id", "SG-041", "--engine", "template") == 0
+    md = next((workspace / "drafts" / "seedling").glob("*SG-041*.md")).read_text(encoding="utf-8")
+    assert "안녕하세요! 꼬몽맘입니다." in md
+    page = next((workspace / "drafts" / "seedling").glob("*SG-041*.html")).read_text(encoding="utf-8")
+    assert '<p style="text-align:center">' in page
+    assert '<h1 style="text-align:center">' in page

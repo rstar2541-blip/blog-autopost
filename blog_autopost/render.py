@@ -84,12 +84,32 @@ def _style_placeholders(body_html: str) -> str:
     return PLACEHOLDER_RE.sub(repl, body_html)
 
 
-def body_html(body_markdown: str) -> str:
-    converted = md.markdown(body_markdown, extensions=["tables", "sane_lists"])
-    return _style_placeholders(converted)
+CENTER_STYLES = {
+    "p": "text-align:center",
+    "h1": "text-align:center",
+    "h2": "text-align:center",
+    "h3": "text-align:center",
+    "blockquote": "text-align:center",
+    "ul": "text-align:center;list-style-position:inside;padding-left:0",
+    "ol": "text-align:center;list-style-position:inside;padding-left:0",
+}
 
 
-def to_html(draft: Draft) -> str:
+def _center(html_text: str) -> str:
+    """에디터에 붙여넣어도 정렬이 유지되도록 인라인 스타일로 가운데 정렬."""
+    for tag, style in CENTER_STYLES.items():
+        html_text = re.sub(rf"<{tag}>", f'<{tag} style="{style}">', html_text)
+    return html_text
+
+
+def body_html(body_markdown: str, align: str = "left") -> str:
+    # nl2br: 짧게 줄바꿈한 문장(모바일 블로그 스타일)을 그대로 유지
+    converted = md.markdown(body_markdown, extensions=["tables", "sane_lists", "nl2br"])
+    converted = _style_placeholders(converted)
+    return _center(converted) if align == "center" else converted
+
+
+def to_html(draft: Draft, align: str = "left") -> str:
     """네이버 블로그 등 에디터에 복사해 붙여넣기 좋은 HTML 문서."""
     esc = html.escape
     counts = count_placeholders(draft.body_markdown)
@@ -126,8 +146,8 @@ def to_html(draft: Draft) -> str:
   <span id="copied" style="margin-left:8px;color:#03a14c"></span>
 </div>
 <article id="post">
-<h1>{esc(draft.title)}</h1>
-{body_html(draft.body_markdown)}
+<h1{' style="text-align:center"' if align == "center" else ""}>{esc(draft.title)}</h1>
+{body_html(draft.body_markdown, align)}
 </article>
 <script>
 function copyPost() {{
@@ -150,14 +170,14 @@ function copyPost() {{
 
 # --------------------------------------------------------------------- save
 
-def save_draft(draft: Draft, drafts_dir: Path) -> tuple[Path, Path]:
+def save_draft(draft: Draft, drafts_dir: Path, align: str = "left") -> tuple[Path, Path]:
     folder = drafts_dir / draft.topic_key
     folder.mkdir(parents=True, exist_ok=True)
     base = draft_basename(draft)
     md_path = folder / f"{base}.md"
     html_path = folder / f"{base}.html"
     md_path.write_text(to_markdown(draft), encoding="utf-8")
-    html_path.write_text(to_html(draft), encoding="utf-8")
+    html_path.write_text(to_html(draft, align), encoding="utf-8")
     return md_path, html_path
 
 

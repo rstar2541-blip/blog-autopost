@@ -82,8 +82,9 @@ _SECTIONS = {
 
 def generate_template(kw: Keyword, topic: TopicConfig) -> Draft:
     sections = _SECTIONS.get(kw.intent, _SECTIONS["정보"])
-    lines = [
-        f"[경험 추가: '{kw.keyword}'를 검색한 독자에게 건넬 첫 인사와, 이 주제를 직접 다뤄 본 경험 1~2문장]",
+    lines = [topic.greeting, ""] if topic.greeting else []
+    lines += [
+        f"[경험 추가: '{kw.keyword}'를 검색한 독자에게 건넬 공감 한마디와, 이 주제를 직접 다뤄 본 계기 1~2문장]",
         "",
         f"이번 글에서는 **{kw.keyword}**에 대해 정리합니다. [확인 필요: 첫 문단에서 줄 핵심 답]",
         "",
@@ -119,7 +120,11 @@ def generate_template(kw: Keyword, topic: TopicConfig) -> Draft:
         "",
         "## 마무리",
         "",
-        f"[경험 추가: {kw.keyword} 핵심 요약 3줄과 다음 글 예고]",
+        f"> [경험 추가: {kw.keyword} 총정리 3줄]",
+        "",
+        "[경험 추가: 응원 한마디와 다음 글 예고]",
+        "",
+        "궁금하신 점은 댓글로 남겨주세요!",
     ]
     if kw.memo:
         lines = [f"> 운영자 메모: {kw.memo}", ""] + lines

@@ -46,12 +46,12 @@ def _make_drafts(cfg: Config, topic: TopicConfig, rows: list[Keyword], targets: 
         except GenerationError as e:
             print(f"실패: {e}")
             continue
-        md_path, html_path = save_draft(draft, cfg.drafts_dir)
+        md_path, html_path = save_draft(draft, cfg.drafts_dir, cfg.align)
         kw.status = "draft"
         note = ""
         if wp is not None:
             try:
-                post = wp.create_post(draft.title, body_html(draft.body_markdown),
+                post = wp.create_post(draft.title, body_html(draft.body_markdown, cfg.align),
                                       status="draft", excerpt=draft.meta_description, tags=draft.tags)
                 kw.post_url = post["link"]
                 note = f" / 워드프레스 임시글 #{post['id']}"
@@ -145,7 +145,7 @@ def cmd_publish(cfg: Config, args) -> int:
     draft = load_draft(md_path, row)
     try:
         wp = WordPressClient.from_env(topic.wp_env_prefix)
-        post = wp.create_post(draft.title, body_html(draft.body_markdown), status=args.status,
+        post = wp.create_post(draft.title, body_html(draft.body_markdown, cfg.align), status=args.status,
                               excerpt=draft.meta_description, tags=draft.tags, date=args.date)
     except PublishError as e:
         print(f"발행 실패: {e}")
@@ -164,6 +164,22 @@ def cmd_mark(cfg: Config, args, status: str) -> int:
         row.post_url = args.url
     kwmod.save(topic.csv, rows)
     print(f"{row.id} {row.keyword} → {status}")
+    return 0
+
+
+def cmd_analyze_blog(cfg: Config, args) -> int:
+    from .naver_reader import analyze
+
+    out = cfg.root / args.out
+    print(f"{args.blog_id} 블로그 글을 읽는 중입니다 (처음엔 글 수 x 1초 정도 걸려요)…")
+    summary = analyze(args.blog_id, out, delay=args.delay)
+    years = ", ".join(f"{y}년 {n}" for y, n in summary["years"].items())
+    print(f"\n글 {summary['posts']}편 ({years})")
+    print(f"글자 수 중앙값 {summary['median_chars']}, 사진 중앙값 {summary['median_images']}장, "
+          f"한 줄 {summary['median_line_length']}자, 가운데 정렬 {summary['center_ratio']:.0%}")
+    top = sorted(summary["expressions_per_post"].items(), key=lambda kv: -kv[1])[:8]
+    print("글당 자주 쓰는 표현: " + ", ".join(f"{w} {n}" for w, n in top))
+    print(f"\n결과 폴더: {out.relative_to(cfg.root)} (text/ 에 글별 텍스트, summary.json 에 요약)")
     return 0
 
 
@@ -221,6 +237,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("calendar", help="전체 캘린더를 HTML로 만들기")
     s.add_argument("--out", default="calendar.html")
+
+    s = sub.add_parser("analyze-blog", help="내 네이버 블로그 글을 읽어 문체 다시 분석")
+    s.add_argument("blog_id", help="네이버 블로그 아이디 (예: samil5240)")
+    s.add_argument("--out", default="style/raw", help="결과 폴더 (기본 style/raw)")
+    s.add_argument("--delay", type=float, default=0.6, help="요청 사이 대기 초 (기본 0.6)")
     return p
 
 
@@ -248,6 +269,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_mark(cfg, args, "skip")
         if args.command == "calendar":
             return cmd_calendar(cfg, args)
+        if args.command == "analyze-blog":
+            return cmd_analyze_blog(cfg, args)
     except (KeyError, PublishError) as e:
         print(e.args[0] if e.args else e)
         return 1

@@ -5,3 +5,4 @@ __pycache__/
 .env
 *.csv.tmp
 calendar.html
+style/raw/

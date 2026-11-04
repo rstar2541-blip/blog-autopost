@@ -32,6 +32,19 @@ CSV 파일은 엑셀이나 구글 시트에서 바로 열립니다. GitHub에서
 
 `{지역}`이 들어간 키워드(조경 4개)는 `config.toml`의 `region`에 적은 지역명으로 바뀝니다.
 
+## 내 문체 (꼬몽맘 스타일)
+
+`style/` 폴더에 네이버 블로그 [samil5240](https://blog.naver.com/samil5240)의 글 118편을 전부 읽고 정리한 문체 분석이 있습니다.
+
+- `style/README.md`: 분석 리포트. 두 화자(꼬몽맘, 꼬몽할배), 형식·말투·글 구조, 반응 좋았던 글, 주제별 적용법
+- `style/voice_kkomongmom.md`, `style/voice_kkomong_grandpa.md`: 초안을 쓸 때 Claude에게 그대로 전달되는 목소리 규칙
+
+`config.toml`에서 주제마다 `voice`로 어떤 목소리를 쓸지 고르고, `[render] align = "center"`로 블로그처럼 가운데 정렬된 초안을 만듭니다. 글을 더 쓴 뒤 문체를 다시 분석하려면 아래 명령을 실행하세요.
+
+```bash
+python -m blog_autopost analyze-blog samil5240
+```
+
 ## 처음 설정 (한 번만)
 
 Python 3.11 이상이 필요합니다.

@@ -3,8 +3,14 @@
 drafts_dir = "drafts"   # 초안이 저장될 폴더
 
 [author]
-# 키워드의 {지역} 자리에 들어갈 지역명 (예: "경기 용인", "충남 천안")
-region = ""
+# 키워드의 {지역} 자리에 들어갈 지역명 (예: "울산 북구", "울산 남구")
+region = "울산"
+nickname = "꼬몽맘"
+greeting = "안녕하세요! 꼬몽맘입니다."   # 초안 첫 줄. 주제별로 greeting을 따로 줄 수도 있음
+
+[render]
+# center: 붙여넣기용 HTML을 가운데 정렬 (블로그 글 86~100%가 가운데 정렬 — style/README.md 참고)
+align = "center"
 
 [generator]
 # template : 인터넷 없이 글 뼈대(소제목·사진 자리·확인할 것)만 만듦. 무료.
@@ -18,30 +24,35 @@ lookahead_months = 1       # next 명령이 몇 달 앞 키워드까지 미리 �
 # ---------------------------------------------------------------- 주제별 설정
 # platform : naver(복사·붙여넣기용 HTML 생성) | wordpress(임시글 자동 업로드)
 # max_per_day : daily 명령 1회에 만들 최대 초안 수 (0이면 이 주제는 건너뜀)
-# persona / audience : 글의 목소리를 정하는 핵심. 본인 경력에 맞게 고쳐 주세요.
+# persona / audience : 글의 목소리를 정하는 핵심. 블로그 글에서 확인한 내용으로 채웠으니 다르면 고쳐 주세요.
+# voice : 문체 가이드 파일. style/voice_kkomongmom.md(꼬몽맘) 또는 style/voice_kkomong_grandpa.md(꼬몽할배)
+#         꼬몽할배 목소리로 쓰려면 voice를 바꾸고 greeting = "안녕하세요, 꼬몽할배입니다." 를 추가
 
 [topics.seedling]
 name = "육묘장 사장이 알려주는 모종·텃밭"
 csv = "keywords/01_seedling_garden.csv"
 platform = "naver"
 max_per_day = 1
-persona = "직접 육묘장을 운영하며 고추·토마토·채소 모종을 키우고 판매하는 대표. 매일 모종을 다루는 생산자의 눈으로, 초보 텃밭인이 실패하지 않게 알려준다."
-audience = "주말농장·베란다·마당 텃밭을 하는 40~60대 초보와 중급 가드너"
+voice = "style/voice_kkomongmom.md"
+persona = "울산에서 부모님과 함께 육묘장(모종·고구마순 판매)을 운영하는 꼬몽맘. 아빠(꼬몽할배)는 30여 년 농사와 조경을 해 왔고, 본인은 식물보호기사·식물보호산업기사 자격이 있어 병해충에 밝다. 모종 시즌마다 손님을 직접 맞는 생산자의 눈으로, 초보 텃밭인이 실패하지 않게 알려준다."
+audience = "주말농장·베란다·옥상·마당 텃밭을 하는 40~60대 초보와 중급 가드너"
 
 [topics.landscaping]
 name = "마당·전원주택 조경 가이드"
 csv = "keywords/02_landscaping.csv"
 platform = "naver"
 max_per_day = 1
-persona = "조경공사 회사를 운영하며 전원주택·상가 마당 조경을 직접 시공하는 대표. 육묘장도 함께 운영해 식물을 잘 안다. 견적과 시공 현장을 솔직하게 설명한다."
-audience = "전원주택 건축주, 마당 있는 집으로 이사한 사람, 카페·상가 사장님"
+voice = "style/voice_kkomongmom.md"
+persona = "가족이 운영하는 조경식재·시설물공사 회사의 여성 대표 꼬몽맘. 현장은 아빠(꼬몽할배)가 30여 년 경력으로 이끌고, 본인은 견적·준공서류·안전관리를 맡는다. 집 옥상정원을 가족이 직접 가꾼다. 거푸집기능사·식물보호기사 보유. 견적과 시공 현장을 솔직하게 설명한다."
+audience = "전원주택 건축주, 마당·옥상이 있는 집으로 이사한 사람, 카페·상가 사장님"
 
 [topics.women_biz]
 name = "여성 대표의 관급공사·여성기업 실전기"
 csv = "keywords/03_women_biz_public.csv"
 platform = "naver"
 max_per_day = 1
-persona = "조경공사업을 하는 여성기업 대표. 여성기업 확인, 관급공사 입찰, 정책자금, 현장 관리를 직접 겪었다. 제도는 정확하게, 경험은 솔직하게 쓴다."
+voice = "style/voice_kkomongmom.md"
+persona = "울산의 조경식재·시설물공사 회사 여성 대표 꼬몽맘. 여성기업 확인 신청에서 현장 실사와 부적격 통보까지 겪어 봤고, 관급공사 준공서류·퇴직공제부금·안전관리비 정산을 직접 처리한다. 제도는 정확하게, 경험은 솔직하게 쓴다."
 audience = "여성기업 인증을 고민하는 대표, 관급공사를 시작하려는 소규모 건설·조경업체"
 disclaimer = "이 글은 운영자의 경험과 일반 정보를 정리한 것입니다. 제도·세법·공고 내용은 바뀔 수 있으니 신청 전에 해당 기관 공고나 세무사·행정사 등 전문가에게 꼭 확인하세요."
 
@@ -51,6 +62,8 @@ csv = "keywords/04_bmw.csv"
 platform = "naver"         # 워드프레스로 따로 운영하면 "wordpress"로 바꾸고 아래 주석 해제
 # wp_env_prefix = "WP_BMW"   # 환경변수 WP_BMW_URL, WP_BMW_USER, WP_BMW_APP_PASSWORD 사용
 max_per_day = 1
-persona = "BMW를 직접 타고 관리하는 오너이자, 법인 차량을 운용하는 중소기업 대표. 정비·비용·세금을 실제 경험 위주로 정리한다."
+voice = "style/voice_kkomongmom.md"
+# 블로그에 자동차 글이 아직 없어 기존 설정을 유지했습니다. 실제 차종·연식에 맞게 고쳐 주세요.
+persona = "BMW를 직접 타고 관리하는 오너이자, 법인 차량을 운용하는 중소기업 여성 대표 꼬몽맘. 정비·비용·세금을 실제 경험 위주로 정리한다."
 audience = "BMW 구매를 고민하거나 이미 타고 있는 30~50대 오너, 법인차를 알아보는 사업자"
 disclaimer = "차량 정비·사양·세금 정보는 모델과 연식, 시점에 따라 다를 수 있습니다. 정확한 내용은 BMW 공식 서비스센터와 관련 기관에서 확인하세요."
