@@ -1,0 +1,258 @@
+"""명령줄 도구: python -m blog_autopost <명령>"""
+from __future__ import annotations
+
+import argparse
+import sys
+from datetime import date
+from pathlib import Path
+
+from . import keywords as kwmod
+from .calendar_view import render_calendar
+from .config import Config, TopicConfig, load_config
+from .generator import GenerationError, generate
+from .keywords import Keyword
+from .render import body_html, count_placeholders, load_draft, save_draft
+from .wordpress import PublishError, WordPressClient
+
+
+def _today(args) -> date:
+    return date.fromisoformat(args.today) if args.today else date.today()
+
+
+def _topics(cfg: Config, key: str | None) -> list[TopicConfig]:
+    return [cfg.topic(key)] if key else list(cfg.topics.values())
+
+
+def _find_anywhere(cfg: Config, keyword_id: str) -> tuple[TopicConfig, list[Keyword], Keyword]:
+    for topic in cfg.topics.values():
+        rows = kwmod.load(topic.csv)
+        for row in rows:
+            if row.id == keyword_id:
+                return topic, rows, row
+    raise KeyError(f"키워드 ID를 찾을 수 없습니다: {keyword_id}")
+
+
+def _make_drafts(cfg: Config, topic: TopicConfig, rows: list[Keyword], targets: list[Keyword],
+                 engine: str | None, upload: bool) -> int:
+    made = 0
+    wp = None
+    if upload and topic.platform == "wordpress":
+        wp = WordPressClient.from_env(topic.wp_env_prefix)
+    for kw in targets:
+        resolved = kw.resolved(cfg.region)
+        print(f"  · {kw.id} {resolved.keyword} … ", end="", flush=True)
+        try:
+            draft = generate(resolved, topic, cfg.generator, engine=engine)
+        except GenerationError as e:
+            print(f"실패: {e}")
+            continue
+        md_path, html_path = save_draft(draft, cfg.drafts_dir)
+        kw.status = "draft"
+        note = ""
+        if wp is not None:
+            try:
+                post = wp.create_post(draft.title, body_html(draft.body_markdown),
+                                      status="draft", excerpt=draft.meta_description, tags=draft.tags)
+                kw.post_url = post["link"]
+                note = f" / 워드프레스 임시글 #{post['id']}"
+            except PublishError as e:
+                note = f" / 워드프레스 업로드 실패: {e}"
+        kwmod.save(topic.csv, rows)  # 한 편씩 저장해서 중간에 멈춰도 진행 상황 유지
+        made += 1
+        print(f"완료 → {html_path.relative_to(cfg.root)}{note}")
+    return made
+
+
+# ------------------------------------------------------------------ commands
+
+def cmd_list(cfg: Config, args) -> int:
+    today = _today(args)
+    for topic in _topics(cfg, args.topic):
+        rows = kwmod.load(topic.csv)
+        month = args.month or today.month
+        shown = [r for r in rows if r.month == month and (not args.status or r.status == args.status)]
+        print(f"\n[{topic.key}] {topic.name} · {month}월 · {len(shown)}개")
+        for r in shown:
+            kw = r.resolved(cfg.region)
+            print(f"  {r.id}  {r.week}주  {r.priority}  {r.status:<9} {kw.keyword}  —  {kw.title}")
+    return 0
+
+
+def cmd_stats(cfg: Config, args) -> int:
+    print(f"{'주제':<14}{'전체':>5}{'예정':>5}{'초안':>5}{'발행':>5}{'건너뜀':>6}")
+    for topic in cfg.topics.values():
+        rows = kwmod.load(topic.csv)
+        c = {s: sum(r.status == s for r in rows) for s in kwmod.STATUSES}
+        print(f"{topic.key:<14}{len(rows):>5}{c['todo']:>5}{c['draft']:>5}{c['published']:>5}{c['skip']:>6}")
+    return 0
+
+
+def cmd_next(cfg: Config, args) -> int:
+    today = _today(args)
+    if args.id:
+        topic, rows, row = _find_anywhere(cfg, args.id)
+        if row.status != "todo" and not args.force:
+            print(f"{row.id}는 이미 '{row.status}' 상태입니다. 다시 만들려면 --force를 붙이세요.")
+            return 1
+        made = _make_drafts(cfg, topic, rows, [row], args.engine, args.upload)
+        return 0 if made else 1
+    total = 0
+    for topic in _topics(cfg, args.topic):
+        rows = kwmod.load(topic.csv)
+        targets = kwmod.upcoming(rows, today, cfg.generator.lookahead_months)[: args.n]
+        if not targets:
+            print(f"[{topic.key}] 지금 쓸 예정 키워드가 없습니다.")
+            continue
+        print(f"[{topic.key}] {topic.name}")
+        total += _make_drafts(cfg, topic, rows, targets, args.engine, args.upload)
+    print(f"\n초안 {total}편을 만들었습니다.")
+    return 0
+
+
+def cmd_daily(cfg: Config, args) -> int:
+    today = _today(args)
+    total = 0
+    for topic in _topics(cfg, args.topic):
+        if topic.max_per_day <= 0:
+            continue
+        rows = kwmod.load(topic.csv)
+        targets = kwmod.due(rows, today)[: topic.max_per_day]
+        if not targets:
+            print(f"[{topic.key}] 오늘 예정된 키워드 없음")
+            continue
+        print(f"[{topic.key}] {topic.name}")
+        total += _make_drafts(cfg, topic, rows, targets, args.engine, args.upload)
+    print(f"\n{today.isoformat()} 초안 {total}편 완료.")
+    return 0
+
+
+def cmd_publish(cfg: Config, args) -> int:
+    md_path = Path(args.draft)
+    from .render import parse_markdown
+
+    meta, body = parse_markdown(md_path.read_text(encoding="utf-8"))
+    topic, rows, row = _find_anywhere(cfg, meta["id"])
+    if topic.platform != "wordpress":
+        print(f"'{topic.key}' 주제는 {topic.platform} 플랫폼입니다. "
+              f"{md_path.with_suffix('.html').name} 파일을 열어 본문을 복사해 붙여넣으세요.")
+        return 1
+    left = {k: v for k, v in count_placeholders(body).items() if v}
+    if left and args.status != "draft" and not args.force:
+        print("아직 채우지 않은 자리가 있어 발행을 멈췄습니다: "
+              + ", ".join(f"{k} {v}곳" for k, v in left.items()))
+        print("임시글로 올리려면 --status draft, 그래도 발행하려면 --force를 붙이세요.")
+        return 1
+    draft = load_draft(md_path, row)
+    try:
+        wp = WordPressClient.from_env(topic.wp_env_prefix)
+        post = wp.create_post(draft.title, body_html(draft.body_markdown), status=args.status,
+                              excerpt=draft.meta_description, tags=draft.tags, date=args.date)
+    except PublishError as e:
+        print(f"발행 실패: {e}")
+        return 1
+    row.post_url = post["link"]
+    row.status = "published" if post["status"] in {"publish", "future"} else "draft"
+    kwmod.save(topic.csv, rows)
+    print(f"워드프레스 글 #{post['id']} ({post['status']}) {post['link']}")
+    return 0
+
+
+def cmd_mark(cfg: Config, args, status: str) -> int:
+    topic, rows, row = _find_anywhere(cfg, args.id)
+    row.status = status
+    if getattr(args, "url", None):
+        row.post_url = args.url
+    kwmod.save(topic.csv, rows)
+    print(f"{row.id} {row.keyword} → {status}")
+    return 0
+
+
+def cmd_calendar(cfg: Config, args) -> int:
+    today = _today(args)
+    data = [(t.key, t.name, [r.resolved(cfg.region) for r in kwmod.load(t.csv)]) for t in cfg.topics.values()]
+    out = Path(args.out)
+    out.write_text(render_calendar(data, today), encoding="utf-8")
+    print(f"캘린더를 만들었습니다: {out}")
+    return 0
+
+
+# --------------------------------------------------------------------- main
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="blog_autopost", description="블로그 키워드 캘린더와 초안 자동 생성")
+    p.add_argument("--config", default="config.toml", help="설정 파일 (기본: config.toml)")
+    p.add_argument("--today", help="기준 날짜 YYYY-MM-DD (미리 계획할 때)")
+    sub = p.add_subparsers(dest="command", required=True)
+
+    s = sub.add_parser("list", help="이번 달(또는 지정 달) 키워드 보기")
+    s.add_argument("--topic")
+    s.add_argument("--month", type=int)
+    s.add_argument("--status", choices=kwmod.STATUSES)
+
+    sub.add_parser("stats", help="주제별 진행 현황")
+
+    def gen_opts(s):
+        s.add_argument("--engine", choices=["template", "claude"], help="config.toml 설정 대신 사용할 방식")
+        s.add_argument("--upload", action="store_true", help="워드프레스 주제는 임시글로 업로드")
+
+    s = sub.add_parser("next", help="다음 키워드로 초안 만들기")
+    s.add_argument("--topic")
+    s.add_argument("-n", type=int, default=1, help="주제당 만들 개수 (기본 1)")
+    s.add_argument("--id", help="특정 키워드 ID (예: SG-016)")
+    s.add_argument("--force", action="store_true", help="이미 초안이 있어도 다시 만들기")
+    gen_opts(s)
+
+    s = sub.add_parser("daily", help="캘린더상 이번 주까지 예정된 키워드로 초안 만들기")
+    s.add_argument("--topic")
+    gen_opts(s)
+
+    s = sub.add_parser("publish", help="초안(.md)을 워드프레스에 올리기")
+    s.add_argument("draft", help="drafts/ 안의 .md 파일")
+    s.add_argument("--status", default="draft", choices=["draft", "publish", "future"])
+    s.add_argument("--date", help="예약 발행 시각 (예: 2026-11-10T07:00:00)")
+    s.add_argument("--force", action="store_true", help="채우지 않은 자리가 있어도 발행")
+
+    s = sub.add_parser("done", help="발행 완료로 표시 (네이버 등 직접 올린 글)")
+    s.add_argument("id")
+    s.add_argument("--url", help="발행한 글 주소")
+
+    s = sub.add_parser("skip", help="이 키워드는 건너뛰기")
+    s.add_argument("id")
+
+    s = sub.add_parser("calendar", help="전체 캘린더를 HTML로 만들기")
+    s.add_argument("--out", default="calendar.html")
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        cfg = load_config(args.config)
+    except FileNotFoundError:
+        print(f"설정 파일을 찾을 수 없습니다: {args.config}")
+        return 1
+    try:
+        if args.command == "list":
+            return cmd_list(cfg, args)
+        if args.command == "stats":
+            return cmd_stats(cfg, args)
+        if args.command == "next":
+            return cmd_next(cfg, args)
+        if args.command == "daily":
+            return cmd_daily(cfg, args)
+        if args.command == "publish":
+            return cmd_publish(cfg, args)
+        if args.command == "done":
+            return cmd_mark(cfg, args, "published")
+        if args.command == "skip":
+            return cmd_mark(cfg, args, "skip")
+        if args.command == "calendar":
+            return cmd_calendar(cfg, args)
+    except (KeyError, PublishError) as e:
+        print(e.args[0] if e.args else e)
+        return 1
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

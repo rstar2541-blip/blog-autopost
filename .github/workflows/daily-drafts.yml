@@ -1,0 +1,53 @@
+# 매일 캘린더에 예정된 키워드로 초안을 만들어 저장소에 커밋합니다.
+# 처음에는 수동 실행만 켜져 있습니다. GitHub > Actions > daily-drafts > Run workflow
+# 매일 자동 실행하려면 아래 schedule 두 줄의 주석(#)을 지우세요.
+name: daily-drafts
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: "17 21 * * *"   # 매일 오전 6시 17분(한국 시간)
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-drafts
+  cancel-in-progress: false
+
+jobs:
+  drafts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: 초안 만들기
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          WP_BMW_URL: ${{ secrets.WP_BMW_URL }}
+          WP_BMW_USER: ${{ secrets.WP_BMW_USER }}
+          WP_BMW_APP_PASSWORD: ${{ secrets.WP_BMW_APP_PASSWORD }}
+        run: |
+          # API 키가 등록돼 있으면 Claude로 초안 작성, 없으면 무료 뼈대 초안
+          if [ -n "$ANTHROPIC_API_KEY" ]; then ENGINE=claude; else ENGINE=template; fi
+          UPLOAD=""
+          if [ -n "$WP_BMW_URL" ]; then UPLOAD="--upload"; fi
+          TZ=Asia/Seoul python -m blog_autopost --today "$(TZ=Asia/Seoul date +%F)" daily --engine "$ENGINE" $UPLOAD
+
+      - name: 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add drafts keywords
+          if git diff --cached --quiet; then
+            echo "새 초안 없음"
+          else
+            git commit -m "Daily drafts $(TZ=Asia/Seoul date +%F)"
+            git push
+          fi
