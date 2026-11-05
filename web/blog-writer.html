@@ -1,0 +1,743 @@
+<title>꼬몽맘 글공방</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gaegu:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Nanum+Gothic:wght@400;700;800&display=swap">
+<style>
+/* 레이아웃: 왼쪽 키워드 캘린더 + 오른쪽 작업대(메모 → 초안 → 네이버 미리보기). 휴대폰에서는 위아래로 쌓임 */
+:root {
+  --bg: #f4f6f1;          /* 모종 트레이 옆 흰 벽 */
+  --panel: #ffffff;
+  --ink: #1d2a21;
+  --muted: #5f6d63;
+  --line: #dde3d8;
+  --leaf: #2f7a4c;        /* 모종 잎 */
+  --leaf-soft: #e3f0e6;
+  --soil: #7a5a3a;        /* 상토 */
+  --naver: #03c75a;
+  --warn: #b42318;  --warn-bg: #fdebe9;
+  --exp: #a8550a;   --exp-bg: #fff1e1;
+  --photo: #1f4fb8; --photo-bg: #e7efff;
+  --link: #0b7a52;  --link-bg: #e3f7ee;
+  --todo: #8a948d; --draft: #b7791f; --pub: #2f7a4c;
+  --font-brand: "Gaegu", "Nanum Gothic", sans-serif;
+  --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-post: "Nanum Gothic", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131915; --panel: #1b231e; --ink: #e6ede7; --muted: #9db0a2; --line: #2c3830;
+    --leaf: #6cc28f; --leaf-soft: #1f3327; --soil: #c9a27c; --naver: #2fd47a;
+    --warn: #ff9b8f; --warn-bg: #3a1f1c; --exp: #f5b46a; --exp-bg: #3a2a16;
+    --photo: #9dbcff; --photo-bg: #1c2840; --link: #6fe0b0; --link-bg: #173328;
+    --todo: #7d8a81; --draft: #e0a84a; --pub: #6cc28f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131915; --panel: #1b231e; --ink: #e6ede7; --muted: #9db0a2; --line: #2c3830;
+  --leaf: #6cc28f; --leaf-soft: #1f3327; --soil: #c9a27c; --naver: #2fd47a;
+  --warn: #ff9b8f; --warn-bg: #3a1f1c; --exp: #f5b46a; --exp-bg: #3a2a16;
+  --photo: #9dbcff; --photo-bg: #1c2840; --link: #6fe0b0; --link-bg: #173328;
+  --todo: #7d8a81; --draft: #e0a84a; --pub: #6cc28f;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--leaf); outline-offset: 2px; }
+
+/* 머리 */
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 18px; }
+.brand h1 { font-family: var(--font-brand); font-size: 34px; line-height: 1; margin: 0; color: var(--leaf); letter-spacing: 0.5px; }
+.brand p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px; font-size: 12px; min-width: 0; }
+.stat b { display: block; font-size: 13px; }
+.stat span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.note { font-size: 12.5px; color: var(--muted); background: var(--panel); border: 1px dashed var(--line); border-radius: var(--radius); padding: 8px 12px; margin-bottom: 14px; }
+.note[data-tone="warn"] { color: var(--warn); border-color: var(--warn); }
+
+/* 본문 2단 */
+.grid { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.panel-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.panel-h h2 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 0.3px; }
+
+/* 캘린더 */
+.filters { display: grid; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: transparent; border-radius: 99px; padding: 4px 10px; font-size: 12.5px; }
+.chip[aria-pressed="true"] { background: var(--leaf); border-color: var(--leaf); color: var(--panel); }
+.months { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px; }
+.months button { flex: 0 0 auto; border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 3px 8px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.months button[aria-pressed="true"] { border-color: var(--leaf); color: var(--leaf); font-weight: 600; }
+.months button.now::after { content: "•"; color: var(--naver); margin-left: 2px; }
+.list { list-style: none; margin: 0; padding: 6px; max-height: 70vh; overflow-y: auto; }
+@media (max-width: 860px) { .list { max-height: 50vh; } }
+.group-label { font-size: 11.5px; color: var(--muted); letter-spacing: 0.4px; padding: 8px 8px 4px; }
+.kw { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 8px; align-items: start; width: 100%; text-align: left; background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 8px; }
+.kw:hover { background: var(--leaf-soft); }
+.kw[aria-current="true"] { border-color: var(--leaf); background: var(--leaf-soft); }
+.kw .wk { font-size: 11px; color: var(--muted); padding-top: 2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kw .t { min-width: 0; }
+.kw .t b { display: block; font-size: 14px; font-weight: 600; }
+.kw .t small { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pill { font-size: 11px; border-radius: 99px; padding: 1px 7px; border: 1px solid currentColor; white-space: nowrap; }
+.pill.todo { color: var(--todo); } .pill.draft { color: var(--draft); } .pill.published { color: var(--pub); } .pill.skip { color: var(--todo); opacity: .6; }
+.prio-A { color: var(--soil); font-weight: 700; }
+.add-own { margin: 8px; width: calc(100% - 16px); border: 1px dashed var(--line); background: transparent; border-radius: 8px; padding: 8px; color: var(--leaf); font-weight: 600; }
+
+/* 작업대 */
+.desk { display: grid; gap: 14px; padding: 14px; }
+.kw-head .meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.kw-head .meta span { border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; }
+.kw-head h3 { margin: 0; font-size: 20px; text-wrap: balance; }
+.kw-head .idea { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
+label.lbl { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 4px; }
+.hint { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+textarea, input[type="text"], input[type="url"], select { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 8px 10px; }
+textarea { resize: vertical; min-height: 92px; line-height: 1.5; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.row > * { min-width: 0; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; font-size: 13px; }
+.seg button[aria-pressed="true"] { background: var(--leaf-soft); color: var(--leaf); font-weight: 600; }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 13.5px; }
+.btn.primary { background: var(--leaf); border-color: var(--leaf); color: var(--panel); }
+.btn.naver { background: var(--naver); border-color: var(--naver); color: #fff; }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn.ghost { background: transparent; }
+.status-line { font-size: 13px; color: var(--muted); min-height: 1.3em; }
+.status-line[data-tone="warn"] { color: var(--warn); }
+
+/* 초안 */
+.draft-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.counts { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+.counts span { border-radius: 6px; padding: 2px 8px; font-weight: 600; }
+.c-photo { background: var(--photo-bg); color: var(--photo); }
+.c-exp { background: var(--exp-bg); color: var(--exp); }
+.c-warn { background: var(--warn-bg); color: var(--warn); }
+.c-link { background: var(--link-bg); color: var(--link); }
+.c-ok { background: var(--leaf-soft); color: var(--leaf); }
+.seo { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13px; display: grid; gap: 4px; }
+.seo b { font-size: 12px; color: var(--muted); font-weight: 600; margin-right: 6px; }
+.checklist { margin: 0; padding-left: 18px; font-size: 13px; }
+
+/* 네이버 미리보기: 휴대폰 화면 폭 */
+.phone { background: var(--bg); border-radius: 14px; padding: 14px; }
+.post { background: #fff; color: #222; max-width: 460px; margin: 0 auto; border-radius: 10px; padding: 22px 18px 30px; font-family: var(--font-post); font-size: 15px; line-height: 1.85; box-shadow: 0 1px 2px rgba(0,0,0,.06); overflow-wrap: anywhere; }
+:root[data-theme="dark"] .post { box-shadow: none; }
+.post.center { text-align: center; }
+.post h1 { font-size: 21px; line-height: 1.4; margin: 0 0 18px; text-wrap: balance; }
+.post h2 { font-size: 18px; margin: 26px 0 10px; text-wrap: balance; }
+.post h3 { font-size: 16px; margin: 20px 0 8px; }
+.post p { margin: 0 0 14px; }
+.post ul, .post ol { margin: 0 0 14px; padding-left: 20px; }
+.post.center ul, .post.center ol { list-style-position: inside; padding-left: 0; }
+.post blockquote { margin: 0 0 14px; padding: 10px 14px; border-left: 3px solid #c9d6cc; background: #f5f8f5; color: #444; }
+.post.center blockquote { border-left: 0; border-top: 2px solid #c9d6cc; border-bottom: 2px solid #c9d6cc; }
+.post .tbl { overflow-x: auto; margin: 0 0 14px; }
+.post table { border-collapse: collapse; margin: 0 auto; font-size: 13.5px; line-height: 1.5; }
+.post th, .post td { border: 1px solid #ddd; padding: 6px 9px; }
+.post th { background: #f3f5f2; }
+.post a { color: #0b6bcb; }
+.post hr { border: 0; border-top: 1px solid #e3e3e3; margin: 18px 0; }
+.post .ph { display: inline; border-radius: 4px; padding: 1px 5px; font-weight: 700; }
+.post .ph-사진 { background: #e7efff; color: #1d4ed8; }
+.post .ph-경험 { background: #fff1e1; color: #a8550a; }
+.post .ph-확인 { background: #fdebe9; color: #b42318; }
+.post .ph-제휴 { background: #e3f7ee; color: #047857; }
+.post .stream-cursor { display: inline-block; width: 8px; height: 1em; background: #2f7a4c; vertical-align: text-bottom; animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .post .stream-cursor { animation: none; } }
+.empty { text-align: center; color: var(--muted); padding: 28px 12px; font-size: 13.5px; }
+.empty b { display: block; color: var(--ink); font-size: 15px; margin-bottom: 4px; }
+.editor textarea { min-height: 360px; font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 13px; }
+.publish-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.publish-row input { flex: 1 1 220px; }
+.own-form { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; gap: 10px; background: var(--bg); }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>꼬몽맘 글공방</h1>
+      <p>키워드 고르기 → 경험 메모 → Claude 초안 → 네이버에 붙여넣기</p>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+  <div class="note" id="note" hidden></div>
+
+  <main class="grid">
+    <section class="panel" aria-labelledby="cal-h">
+      <div class="panel-h"><h2 id="cal-h">키워드 캘린더</h2><span class="hint" id="cal-count"></span></div>
+      <div class="filters">
+        <div class="chips" id="topic-chips" role="group" aria-label="주제"></div>
+        <div class="months" id="months" role="group" aria-label="발행 달"></div>
+      </div>
+      <ul class="list" id="kw-list"></ul>
+      <button class="add-own" id="add-own" type="button">+ 캘린더에 없는 글 직접 쓰기</button>
+    </section>
+
+    <section class="panel" aria-labelledby="desk-h">
+      <div class="panel-h"><h2 id="desk-h">작업대</h2><span class="hint" id="save-state"></span></div>
+      <div class="desk" id="desk"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+const DATA = {"built":"2026-11-05","greeting":"안녕하세요! 꼬몽맘입니다.","topics":[{"key":"seedling","name":"육묘장 사장이 알려주는 모종·텃밭","label":"모종·텃밭","persona":"울산에서 부모님과 함께 육묘장(모종·고구마순 판매)을 운영하는 꼬몽맘. 아빠(꼬몽할배)는 30여 년 농사와 조경을 해 왔고, 본인은 식물보호기사·식물보호산업기사 자격이 있어 병해충에 밝다. 모종 시즌마다 손님을 직접 맞는 생산자의 눈으로, 초보 텃밭인이 실패하지 않게 알려준다.","audience":"주말농장·베란다·옥상·마당 텃밭을 하는 40~60대 초보와 중급 가드너","disclaimer":""},{"key":"landscaping","name":"마당·전원주택 조경 가이드","label":"조경","persona":"가족이 운영하는 조경식재·시설물공사 회사의 여성 대표 꼬몽맘. 현장은 아빠(꼬몽할배)가 30여 년 경력으로 이끌고, 본인은 견적·준공서류·안전관리를 맡는다. 집 옥상정원을 가족이 직접 가꾼다. 거푸집기능사·식물보호기사 보유. 견적과 시공 현장을 솔직하게 설명한다.","audience":"전원주택 건축주, 마당·옥상이 있는 집으로 이사한 사람, 카페·상가 사장님","disclaimer":""},{"key":"women_biz","name":"여성 대표의 관급공사·여성기업 실전기","label":"여성기업·관급","persona":"울산의 조경식재·시설물공사 회사 여성 대표 꼬몽맘. 여성기업 확인 신청에서 현장 실사와 부적격 통보까지 겪어 봤고, 관급공사 준공서류·퇴직공제부금·안전관리비 정산을 직접 처리한다. 제도는 정확하게, 경험은 솔직하게 쓴다.","audience":"여성기업 인증을 고민하는 대표, 관급공사를 시작하려는 소규모 건설·조경업체","disclaimer":"이 글은 운영자의 경험과 일반 정보를 정리한 것입니다. 제도·세법·공고 내용은 바뀔 수 있으니 신청 전에 해당 기관 공고나 세무사·행정사 등 전문가에게 꼭 확인하세요."},{"key":"bmw","name":"BMW 오너의 실사용 관리 기록","label":"BMW","persona":"BMW를 직접 타고 관리하는 오너이자, 법인 차량을 운용하는 중소기업 여성 대표 꼬몽맘. 정비·비용·세금을 실제 경험 위주로 정리한다.","audience":"BMW 구매를 고민하거나 이미 타고 있는 30~50대 오너, 법인차를 알아보는 사업자","disclaimer":"차량 정비·사양·세금 정보는 모델과 연식, 시점에 따라 다를 수 있습니다. 정확한 내용은 BMW 공식 서비스센터와 관련 기관에서 확인하세요."}],"keywords":[["SG-001","seedling",11,1,"브랜딩","육묘장","육묘장의 1년, 모종 한 판이 나오기까지","경험",11,"B","애드포스트","todo"],["SG-002","seedling",11,1,"월동","마늘 월동 관리","마늘 월동 관리, 짚 덮기와 비닐 멀칭 언제 할까","정보",11,"A","쿠팡:부직포","todo"],["SG-003","seedling",11,2,"월동","양파 월동 관리","양파 모종 심은 후 들뜸 막는 법, 월동 전 꼭 할 일","문제해결",11,"A","애드포스트","todo"],["SG-004","seedling",11,2,"텃밭계획","겨울 텃밭 정리","겨울 텃밭 정리 순서, 내년 농사가 쉬워지는 마무리","정보",11,"B","애드포스트","todo"],["SG-005","seedling",11,3,"월동","월동 시금치 키우기","월동 시금치 키우기, 겨울에도 수확하는 방법","정보",11,"B","쿠팡:씨앗","todo"],["SG-006","seedling",11,3,"흙·거름","낙엽 퇴비 만들기","낙엽 퇴비 만들기, 겨울 동안 텃밭 거름 준비","정보",11,"B","쿠팡:퇴비통","todo"],["SG-007","seedling",11,4,"실내·베란다","겨울 베란다 텃밭","겨울 베란다 텃밭에서 키우기 쉬운 채소 5가지","정보",12,"A","쿠팡:플랜터","todo"],["SG-008","seedling",12,1,"실내·베란다","새싹채소 키우기","새싹채소 키우기, 육묘장 사장이 쓰는 발아 요령","정보",12,"A","쿠팡:새싹재배기","todo"],["SG-009","seedling",12,1,"실내·베란다","무순 키우기","무순 키우기, 열흘이면 수확하는 실내 새싹채소","정보",12,"B","쿠팡:새싹씨앗","todo"],["SG-010","seedling",12,2,"실내·베란다","대파 수경재배","대파 뿌리 수경재배, 다시 자라게 하는 법과 한계","정보",1,"B","애드포스트","todo"],["SG-011","seedling",12,3,"실내·베란다","식물 LED 등","실내 채소용 식물 LED 등 고르는 법","구매",12,"A","쿠팡:식물등","todo"],["SG-012","seedling",12,4,"텃밭계획","텃밭 작물 배치도","내년 텃밭 계획 세우는 법, 작물 배치도 예시","정보",1,"A","애드포스트","todo"],["SG-013","seedling",1,1,"텃밭계획","텃밭 씨앗 구입","텃밭 씨앗 언제 사야 할까, 종묘사 카탈로그 보는 법","구매",2,"B","쿠팡:씨앗","todo"],["SG-014","seedling",1,1,"육묘·파종","씨앗 보관법","남은 씨앗 보관법, 냉장 보관해도 될까","정보",1,"B","애드포스트","todo"],["SG-015","seedling",1,2,"육묘·파종","씨앗 발아율 테스트","묵은 씨앗 발아율 테스트, 키친타월로 간단히 확인하기","문제해결",2,"B","애드포스트","todo"],["SG-016","seedling",1,2,"육묘·파종","고추 씨앗 파종 시기","고추 씨앗 파종 시기, 아주심기 날짜에서 거꾸로 계산하는 법","정보",2,"A","쿠팡:고추씨앗","todo"],["SG-017","seedling",1,3,"육묘·파종","육묘 트레이","육묘 트레이 50구·72구·128구 차이와 작물별 선택법","비교",2,"A","쿠팡:육묘트레이","todo"],["SG-018","seedling",1,3,"흙·거름","육묘용 상토","육묘용 상토와 원예용 상토, 무엇이 다를까","비교",2,"A","쿠팡:상토","todo"],["SG-019","seedling",1,4,"텃밭계획","연작피해","텃밭 연작피해, 가지과 작물 돌려짓기 계획 짜는 법","정보",2,"B","애드포스트","todo"],["SG-020","seedling",2,1,"육묘·파종","고추 발아 온도","고추 씨앗 발아 온도와 발아가 안 될 때 점검할 것","문제해결",2,"A","쿠팡:육묘매트","todo"],["SG-021","seedling",2,1,"육묘·파종","토마토 씨앗 파종","토마토 씨앗 파종 방법, 집에서 모종 키우기","정보",3,"A","쿠팡:토마토씨앗","todo"],["SG-022","seedling",2,1,"육묘·파종","육묘 매트","전기 육묘 매트 사용법, 온도 설정과 주의점","구매",2,"B","쿠팡:육묘매트","todo"],["SG-023","seedling",2,2,"육묘·파종","모종 웃자람","모종 웃자람 원인 3가지와 바로잡는 법","문제해결",3,"A","쿠팡:식물등","todo"],["SG-024","seedling",2,2,"육묘·파종","떡잎 노랗게","모종 떡잎이 노랗게 변할 때, 물 문제일까 비료 문제일까","문제해결",3,"B","애드포스트","todo"],["SG-025","seedling",2,3,"텃밭계획","주말농장 분양","주말농장 분양 시기와 고르는 기준, 처음이라면 몇 평이 적당할까","정보",3,"A","애드포스트","todo"],["SG-026","seedling",2,3,"텃밭계획","텃밭 도구","텃밭 초보 필수 도구 7가지, 육묘장 사장이 실제로 쓰는 것","구매",3,"A","쿠팡:원예도구","todo"],["SG-027","seedling",2,4,"심기·재배","감자 심는 시기","감자 심는 시기, 중부·남부 지역별 정리","정보",3,"A","쿠팡:씨감자","todo"],["SG-028","seedling",2,4,"심기·재배","씨감자 자르기","씨감자 자르는 법, 눈 개수와 재를 묻히는 이유","정보",3,"B","쿠팡:씨감자","todo"],["SG-029","seedling",3,1,"흙·거름","텃밭 밭 만들기","텃밭 밭 만들기, 퇴비와 석회 넣는 순서와 시기","정보",3,"A","쿠팡:퇴비","todo"],["SG-030","seedling",3,1,"흙·거름","고토석회 사용법","고토석회 뿌리는 시기, 퇴비와 같이 넣으면 안 되는 이유","정보",3,"B","쿠팡:고토석회","todo"],["SG-031","seedling",3,1,"심기·재배","두둑 만들기","텃밭 두둑 높이와 폭, 작물별로 다르게 하는 법","정보",4,"B","애드포스트","todo"],["SG-032","seedling",3,2,"심기·재배","멀칭 비닐","멀칭 비닐 색깔별 차이, 검정·투명·은색은 언제 쓰나","비교",4,"A","쿠팡:멀칭비닐","todo"],["SG-033","seedling",3,2,"심기·재배","상추 모종 심기","상추 모종 심는 시기와 간격, 한 번 심고 오래 따는 법","정보",4,"A","쿠팡:상추모종","todo"],["SG-034","seedling",3,2,"흙·거름","퇴비 고르는 법","퇴비 고르는 법, 완숙 퇴비와 미숙 퇴비 구별하기","구매",3,"B","쿠팡:퇴비","todo"],["SG-035","seedling",3,3,"모종고르기","접목모종","접목모종과 실생모종 차이, 비싼 값을 할까","비교",4,"A","쿠팡:접목모종","todo"],["SG-036","seedling",3,3,"모종고르기","모종 가격","모종 가격 정리, 고추·토마토·오이 모종 시세 보는 법","비용",4,"A","애드포스트","todo"],["SG-037","seedling",3,3,"모종고르기","모종 구입처","모종 어디서 살까, 육묘장·화훼단지·온라인 장단점","비교",4,"A","쿠팡:모종","todo"],["SG-038","seedling",3,4,"심기·재배","완두콩 심는 시기","완두콩 심는 시기와 지지대 세우는 법","정보",3,"C","쿠팡:지지대","todo"],["SG-039","seedling",3,4,"심기·재배","쌈채소 모종","쌈채소 모종 종류별 키우는 법, 텃밭 첫해 추천 조합","정보",4,"B","쿠팡:모종","todo"],["SG-040","seedling",3,4,"육묘·파종","모종 순화","모종 순화(하드닝) 하는 법, 바로 심으면 몸살 나는 이유","정보",4,"B","애드포스트","todo"],["SG-041","seedling",4,1,"모종고르기","고추 모종 고르는 법","좋은 고추 모종 고르는 법, 육묘장 사장이 보는 4가지","정보",4,"A","쿠팡:고추모종","todo"],["SG-042","seedling",4,1,"심기·재배","고추 모종 심는 시기","고추 모종 심는 시기, 늦서리를 피하는 지역별 기준","정보",5,"A","쿠팡:고추모종","todo"],["SG-043","seedling",4,1,"심기·재배","고추 모종 심는 간격","고추 모종 심는 간격과 깊이, 포기당 수확량 늘리는 법","정보",5,"A","쿠팡:지지대","todo"],["SG-044","seedling",4,1,"모종고르기","토마토 모종 고르는 법","토마토 모종 고르는 법, 첫 꽃방 위치를 확인하세요","정보",4,"A","쿠팡:토마토모종","todo"],["SG-045","seedling",4,2,"심기·재배","토마토 모종 심는 간격","토마토 모종 심는 간격과 눕혀 심기 방법","정보",5,"A","쿠팡:토마토지지대","todo"],["SG-046","seedling",4,2,"심기·재배","오이 모종 심기","오이 모종 심는 시기와 오이망 설치법","정보",5,"A","쿠팡:오이망","todo"],["SG-047","seedling",4,2,"심기·재배","가지 모종 심기","가지 모종 심는 시기와 간격, 첫 꽃은 따야 할까","정보",5,"B","쿠팡:가지모종","todo"],["SG-048","seedling",4,3,"심기·재배","호박 모종 심기","애호박·단호박 모종 심기, 공간을 적게 쓰는 법","정보",5,"B","쿠팡:호박모종","todo"],["SG-049","seedling",4,3,"심기·재배","모종 몸살","모종 옮겨 심은 후 시들 때, 몸살인지 뿌리 문제인지 구별법","문제해결",5,"A","애드포스트","todo"],["SG-050","seedling",4,3,"심기·재배","늦서리 피해","늦서리 피해 입은 모종, 살릴 수 있을까","문제해결",4,"B","쿠팡:부직포","todo"],["SG-051","seedling",4,3,"심기·재배","옥수수 심는 시기","옥수수 심는 시기, 직파와 모종 중 무엇이 나을까","비교",4,"B","쿠팡:옥수수씨앗","todo"],["SG-052","seedling",4,4,"심기·재배","모종 물주기","모종 심은 직후 물주기, 언제 얼마나 줘야 할까","정보",5,"A","쿠팡:물조리개","todo"],["SG-053","seedling",4,4,"흙·거름","밑거름 양","텃밭 밑거름 양 계산, 10평 기준 퇴비·비료 얼마나 넣을까","정보",4,"B","쿠팡:복합비료","todo"],["SG-054","seedling",4,4,"실내·베란다","허브 모종","바질·로즈마리 허브 모종 키우기, 텃밭과 화분의 차이","정보",5,"B","쿠팡:허브모종","todo"],["SG-055","seedling",5,1,"심기·재배","고추 지지대","고추 지지대 세우는 시기와 줄 매는 법","정보",5,"A","쿠팡:고추지지대","todo"],["SG-056","seedling",5,1,"심기·재배","고추 곁순 제거","고추 방아다리 아래 곁순 제거, 꼭 해야 할까","정보",6,"A","애드포스트","todo"],["SG-057","seedling",5,1,"심기·재배","토마토 곁순 제거","토마토 곁순 제거 시기와 방법, 사진으로 정리","정보",6,"A","애드포스트","todo"],["SG-058","seedling",5,2,"심기·재배","고구마 순 심기","고구마 순 심는 시기와 방법, 눕혀 심기와 세워 심기","정보",5,"A","쿠팡:고구마순","todo"],["SG-059","seedling",5,2,"병해충","진딧물 퇴치","텃밭 진딧물 퇴치, 친환경 방법부터 약제까지","문제해결",6,"A","쿠팡:친환경살충제","todo"],["SG-060","seedling",5,2,"심기·재배","들깨 모종","들깨 모종 심기, 깻잎 많이 따는 순지르기","정보",6,"B","쿠팡:들깨모종","todo"],["SG-061","seedling",5,3,"심기·재배","텃밭 수박 참외","텃밭에서 수박·참외 키우기, 순 정리가 핵심","정보",6,"B","쿠팡:수박모종","todo"],["SG-062","seedling",5,3,"흙·거름","웃거름 시기","웃거름 주는 시기와 양, 작물별 정리","정보",6,"A","쿠팡:웃거름비료","todo"],["SG-063","seedling",5,3,"심기·재배","텃밭 잡초 관리","텃밭 잡초 관리, 멀칭으로 김매기 줄이는 법","문제해결",6,"B","쿠팡:제초매트","todo"],["SG-064","seedling",5,4,"수확·저장","상추 꽃대","상추 꽃대가 올라올 때, 쓴맛 줄이고 오래 수확하는 법","문제해결",6,"B","애드포스트","todo"],["SG-065","seedling",5,4,"심기·재배","오이 순 정리","오이 순 정리법, 아들줄기와 손자줄기는 어디까지","정보",6,"B","애드포스트","todo"],["SG-066","seedling",5,4,"심기·재배","동반식물","동반식물 조합, 토마토 옆에 바질을 심으면 좋을까","정보",5,"C","쿠팡:허브모종","todo"],["SG-067","seedling",6,1,"심기·재배","장마철 텃밭 관리","장마철 텃밭 관리, 배수로와 지지대 점검법","정보",7,"A","애드포스트","todo"],["SG-068","seedling",6,1,"병해충","고추 탄저병","고추 탄저병 예방, 장마 전에 해야 할 3가지","문제해결",7,"A","쿠팡:살균제","todo"],["SG-069","seedling",6,2,"병해충","토마토 열과","토마토 갈라짐(열과) 원인과 막는 법","문제해결",7,"A","애드포스트","todo"],["SG-070","seedling",6,2,"병해충","배꼽썩음병","토마토·고추 배꼽썩음병, 칼슘 부족일까 물 문제일까","문제해결",7,"A","쿠팡:칼슘제","todo"],["SG-071","seedling",6,3,"수확·저장","감자 수확 시기","감자 수확 시기와 싹 나지 않게 보관하는 법","정보",6,"A","애드포스트","todo"],["SG-072","seedling",6,3,"수확·저장","마늘 수확 시기","마늘 수확 시기와 말리는 법","정보",6,"A","애드포스트","todo"],["SG-073","seedling",6,4,"수확·저장","양파 수확 시기","양파 수확 시기, 줄기가 쓰러지면 신호","정보",6,"B","쿠팡:양파망","todo"],["SG-074","seedling",6,4,"병해충","오이 흰가루병","오이 흰가루병과 노균병 구별법과 대처","문제해결",7,"B","쿠팡:살균제","todo"],["SG-075","seedling",7,1,"병해충","총채벌레","고추 잎 오그라짐, 총채벌레와 응애 구별법","문제해결",7,"A","쿠팡:친환경살충제","todo"],["SG-076","seedling",7,1,"병해충","담배나방","고추에 구멍 뚫는 담배나방, 피해 줄이는 방법","문제해결",8,"B","쿠팡:방충망","todo"],["SG-077","seedling",7,2,"심기·재배","여름 텃밭 물주기","한여름 텃밭 물주기, 아침과 저녁 중 언제가 좋을까","정보",7,"B","쿠팡:점적호스","todo"],["SG-078","seedling",7,3,"모종고르기","김장배추 모종 예약","김장배추 모종 언제 예약할까, 품종 고르는 법","구매",8,"A","애드포스트","todo"],["SG-079","seedling",7,3,"심기·재배","쪽파 심는 시기","쪽파 종구 심는 시기와 방법","정보",8,"B","쿠팡:쪽파종구","todo"],["SG-080","seedling",7,4,"육묘·파종","딸기 런너","딸기 런너로 모종 늘리기, 내년 딸기 준비","정보",7,"C","애드포스트","todo"],["SG-081","seedling",8,1,"심기·재배","김장배추 모종 심는 시기","김장배추 모종 심는 시기, 며칠 차이로 결구가 달라진다","정보",8,"A","쿠팡:배추모종","todo"],["SG-082","seedling",8,1,"심기·재배","배추 모종 간격","배추 모종 심는 간격과 밑거름","정보",9,"A","쿠팡:복합비료","todo"],["SG-083","seedling",8,2,"심기·재배","무 파종 시기","김장 무 파종 시기와 솎아내기","정보",8,"A","쿠팡:무씨앗","todo"],["SG-084","seedling",8,2,"수확·저장","홍고추 수확","홍고추 수확 시기와 꼭지 따는 법","정보",8,"B","애드포스트","todo"],["SG-085","seedling",8,3,"수확·저장","고추 말리기","고추 말리기, 건조기와 햇볕 건조 비교","비교",8,"A","쿠팡:식품건조기","todo"],["SG-086","seedling",8,3,"심기·재배","가을 상추 파종","가을 상추 파종 시기, 봄보다 쉬운 이유","정보",9,"B","쿠팡:상추씨앗","todo"],["SG-087","seedling",8,4,"심기·재배","갓 당근 파종","갓·당근 가을 파종, 김장 재료를 텃밭에서 준비하기","정보",9,"C","쿠팡:씨앗","todo"],["SG-088","seedling",8,4,"병해충","배추벌레","배추벌레(배추흰나비 애벌레) 잡는 법","문제해결",9,"A","쿠팡:한랭사","todo"],["SG-089","seedling",9,1,"병해충","배추 결구 안됨","배추 속이 안 찰 때, 결구가 안 되는 원인","문제해결",10,"A","애드포스트","todo"],["SG-090","seedling",9,1,"심기·재배","배추 묶기","배추 묶어주기, 해야 할까 말아야 할까","정보",10,"B","쿠팡:배추끈","todo"],["SG-091","seedling",9,2,"수확·저장","고구마 수확 시기","고구마 수확 시기와 큐어링 보관법","정보",10,"A","애드포스트","todo"],["SG-092","seedling",9,2,"모종고르기","마늘 종구 고르기","마늘 종구 고르는 법, 한지형과 난지형 차이","비교",9,"B","쿠팡:마늘종구","todo"],["SG-093","seedling",9,3,"모종고르기","양파 모종 고르기","양파 모종 고르는 법, 굵기가 중요한 이유","정보",10,"B","쿠팡:양파모종","todo"],["SG-094","seedling",9,3,"수확·저장","땅콩 수확","땅콩 수확 시기와 말리는 법","정보",9,"C","애드포스트","todo"],["SG-095","seedling",9,4,"심기·재배","딸기 모종 심기","딸기 모종 가을 정식, 크라운 깊이 맞추는 법","정보",10,"B","쿠팡:딸기모종","todo"],["SG-096","seedling",10,1,"심기·재배","마늘 심는 시기","마늘 심는 시기와 깊이, 지역별 정리","정보",10,"A","쿠팡:마늘종구","todo"],["SG-097","seedling",10,1,"심기·재배","양파 모종 심는 시기","양파 모종 심는 시기와 간격","정보",10,"A","쿠팡:양파모종","todo"],["SG-098","seedling",10,2,"수확·저장","김장배추 수확 시기","김장배추 수확 시기, 서리를 맞혀도 될까","정보",11,"A","애드포스트","todo"],["SG-099","seedling",10,3,"수확·저장","무 보관법","무 수확 시기와 겨울 보관법","정보",11,"B","애드포스트","todo"],["SG-100","seedling",10,4,"월동","월동 작물","가을에 심는 월동 작물 정리, 봄에 가장 먼저 수확하는 채소","정보",10,"B","쿠팡:씨앗","todo"],["LS-001","landscaping",11,1,"월동·계절","정원수 월동 준비","정원수 월동 준비, 짚싸기와 보온이 필요한 나무 구별법","정보",11,"A","쿠팡:수목보온재","todo"],["LS-002","landscaping",11,1,"월동·계절","장미 월동","장미 월동 방법, 북주기와 가지치기 순서","정보",11,"B","쿠팡:수목보온재","todo"],["LS-003","landscaping",11,1,"꽃·지피","튤립 구근 심는 시기","튤립 구근 심는 시기와 깊이, 마당 화단 배치법","정보",11,"A","쿠팡:튤립구근","todo"],["LS-004","landscaping",11,2,"관리·전정","마당 낙엽 정리","마당 낙엽 정리, 잔디 위 낙엽을 그냥 두면 생기는 일","정보",11,"B","쿠팡:낙엽청소기","todo"],["LS-005","landscaping",11,2,"월동·계절","잔디 월동 관리","잔디 월동 관리, 겨울 전에 마지막으로 할 일","정보",11,"B","애드센스","todo"],["LS-006","landscaping",11,3,"월동·계절","염화칼슘 수목 피해","제설제 염화칼슘이 나무와 잔디에 주는 피해와 예방","문제해결",12,"B","애드센스","todo"],["LS-007","landscaping",11,3,"설계·디자인","전원주택 마당 디자인","전원주택 마당 디자인, 시공 전에 정해야 할 5가지","정보",1,"A","시공문의","todo"],["LS-008","landscaping",11,4,"비용·견적","조경공사 견적서 보는 법","조경공사 견적서 보는 법, 항목별로 꼭 확인할 것","비용",2,"A","시공문의","todo"],["LS-009","landscaping",11,4,"시공·자재","정원 조명","정원 조명 설치, 태양광 조명과 전기 조명 비교","비교",11,"B","쿠팡:정원조명","todo"],["LS-101","landscaping",11,1,"비용·견적","조경 내역서 작성","조경 내역서 작성 방법, 수량부터 원가계산서까지 순서대로 알려드려요!","정보",2,"A","애드센스","draft"],["LS-010","landscaping",12,1,"관리·전정","낙엽수 가지치기 시기","낙엽수 가지치기 시기, 겨울 전정이 좋은 이유","정보",1,"A","애드센스","todo"],["LS-011","landscaping",12,1,"설계·디자인","작은 마당 꾸미기","작은 마당 꾸미기, 10평 이하 마당 조경 아이디어","정보",3,"A","시공문의","todo"],["LS-012","landscaping",12,2,"설계·디자인","정원 설계 순서","정원 설계 순서, 동선·배수·햇빛부터 보는 법","정보",2,"A","시공문의","todo"],["LS-013","landscaping",12,3,"업체선택","조경업체 고르는 법","조경업체 고르는 법, 계약 전에 물어봐야 할 7가지","정보",2,"A","시공문의","todo"],["LS-014","landscaping",12,3,"정원수","마당 상록수 추천","마당 상록수 추천, 겨울에도 푸른 정원 만드는 나무","정보",3,"B","시공문의","todo"],["LS-015","landscaping",12,4,"비용·견적","마당 조경 비용","마당 조경 비용 평당 얼마? 공종별로 나눠 보는 법","비용",3,"A","시공문의","todo"],["LS-016","landscaping",1,1,"설계·디자인","마당 콘크리트 잔디 자갈","마당 콘크리트 vs 잔디 vs 자갈, 관리와 비용 비교","비교",3,"A","시공문의","todo"],["LS-017","landscaping",1,1,"시공·자재","데크 자재 비교","정원 데크 자재 비교, 방부목·합성목·하드우드 장단점","비교",3,"A","시공문의","todo"],["LS-018","landscaping",1,2,"시공·자재","판석 깔기","판석 깔기 비용과 시공 방법, 셀프로 가능한 범위","비용",4,"A","시공문의","todo"],["LS-019","landscaping",1,2,"시공·자재","조경석 쌓기","조경석 쌓기, 자연석과 가공석 차이와 비용","비교",3,"B","시공문의","todo"],["LS-020","landscaping",1,3,"설계·디자인","생울타리 나무 추천","생울타리 나무 추천, 측백·쥐똥나무·홍가시 비교","비교",3,"A","시공문의","todo"],["LS-021","landscaping",1,3,"업체선택","울산 조경업체","울산 조경업체 선택 기준, 시공 사례로 보는 체크리스트","정보",3,"A","시공문의","todo"],["LS-022","landscaping",1,4,"시공·자재","마당 울타리","마당 울타리(휀스) 종류별 비용과 장단점","비교",3,"B","시공문의","todo"],["LS-023","landscaping",2,1,"잔디","잔디 깔기 비용","잔디 깔기 비용, 평당 단가와 셀프 시공 비교","비용",4,"A","시공문의","todo"],["LS-024","landscaping",2,1,"잔디","천연잔디 인조잔디","천연잔디 vs 인조잔디, 5년 유지비까지 비교","비교",4,"A","시공문의","todo"],["LS-025","landscaping",2,1,"잔디","잔디 종류","잔디 종류 비교, 들잔디·금잔디·켄터키블루그래스","비교",4,"A","쿠팡:잔디씨앗","todo"],["LS-026","landscaping",2,2,"정원수","정원수 추천","마당에 심기 좋은 정원수 10가지, 관리 난이도별 정리","정보",3,"A","시공문의","todo"],["LS-027","landscaping",2,2,"정원수","나무 심는 시기","나무 심는 시기, 봄 식재와 가을 식재 중 무엇이 나을까","정보",3,"A","애드센스","todo"],["LS-028","landscaping",2,3,"시공·자재","마당 물빠짐","마당 물빠짐 해결, 배수 공사가 필요한 신호","문제해결",4,"A","시공문의","todo"],["LS-029","landscaping",2,3,"시공·자재","자갈 마당","자갈 마당 시공, 쇄석 크기와 방초시트 까는 법","정보",4,"B","쿠팡:방초시트","todo"],["LS-030","landscaping",2,3,"설계·디자인","마당 텃밭 정원","마당 텃밭 정원 만들기, 화단형 텃밭 설계법","정보",3,"B","쿠팡:텃밭상자","todo"],["LS-031","landscaping",2,4,"시공·자재","디딤돌 놓기","디딤돌 놓는 법, 간격과 높이 맞추기","정보",4,"B","쿠팡:디딤돌","todo"],["LS-032","landscaping",2,4,"비용·견적","전원주택 조경 비용","전원주택 조경 비용, 100평 대지 기준 예산 짜는 법","비용",3,"A","시공문의","todo"],["LS-033","landscaping",3,1,"정원수","묘목 심는 법","묘목 심는 법, 구덩이 크기와 물집 만드는 요령","정보",3,"A","쿠팡:묘목","todo"],["LS-034","landscaping",3,1,"정원수","유실수 추천","마당 유실수 추천, 감·대추·블루베리 키우기 난이도","정보",3,"A","쿠팡:유실수묘목","todo"],["LS-035","landscaping",3,1,"정원수","배롱나무 키우기","배롱나무 키우기, 심는 위치와 겨울 보호","정보",4,"B","시공문의","todo"],["LS-036","landscaping",3,2,"정원수","정원 단풍나무","정원 단풍나무 품종 고르기와 심는 법","정보",4,"B","시공문의","todo"],["LS-037","landscaping",3,2,"꽃·지피","지피식물 추천","지피식물 추천, 맥문동·꽃잔디·수호초 비교","비교",4,"A","쿠팡:지피식물","todo"],["LS-038","landscaping",3,2,"꽃·지피","꽃잔디 심기","꽃잔디 심는 시기와 간격, 빨리 번지게 하는 법","정보",4,"A","쿠팡:꽃잔디","todo"],["LS-039","landscaping",3,3,"잔디","잔디 셀프 시공","잔디 셀프 시공 순서, 정지 작업부터 배토까지","정보",4,"A","쿠팡:잔디배토","todo"],["LS-040","landscaping",3,3,"관리·전정","나무 이식","큰 나무 옮겨 심기, 이식 시기와 뿌리돌림","정보",3,"B","시공문의","todo"],["LS-041","landscaping",3,3,"시공·자재","화단 만들기","화단 만들기, 벽돌·목재·코르텐강 경계재 비교","비교",4,"A","쿠팡:화단경계재","todo"],["LS-042","landscaping",3,4,"시공·자재","방초시트","방초시트 깔기, 잡초 안 나는 마당 만드는 법","정보",4,"A","쿠팡:방초시트","todo"],["LS-043","landscaping",3,4,"비용·견적","조경수 가격","조경수 가격 보는 법, 수고·근원직경 이해하기","비용",3,"B","시공문의","todo"],["LS-044","landscaping",3,4,"설계·디자인","그늘 정원 식물","그늘진 마당에 잘 자라는 식물 추천","정보",4,"B","쿠팡:그늘식물","todo"],["LS-045","landscaping",4,1,"꽃·지피","수국 키우기","수국 키우기, 마당 수국 심는 위치와 꽃색 바꾸는 법","정보",5,"A","쿠팡:수국","todo"],["LS-046","landscaping",4,1,"꽃·지피","넝쿨장미 심기","넝쿨장미 심기, 담장과 아치 연출법","정보",5,"B","쿠팡:장미묘목","todo"],["LS-047","landscaping",4,1,"잔디","잔디 비료","잔디 비료 주는 시기와 양","정보",5,"A","쿠팡:잔디비료","todo"],["LS-048","landscaping",4,2,"잔디","잔디밭 잡초","잔디밭 잡초 제거, 클로버·바랭이 대처법","문제해결",5,"A","쿠팡:잔디제초제","todo"],["LS-049","landscaping",4,2,"시공·자재","정원 자동 관수","정원 자동 관수 시스템, 스프링클러와 점적관수 비교","비교",5,"A","쿠팡:스프링클러","todo"],["LS-050","landscaping",4,2,"시공·자재","파고라 설치","정원 파고라 설치, 크기와 자재 고르는 법","정보",5,"B","시공문의","todo"],["LS-051","landscaping",4,3,"설계·디자인","진입로 주차장 포장","전원주택 진입로·주차장 포장, 투수블록과 콘크리트 비교","비교",4,"B","시공문의","todo"],["LS-052","landscaping",4,3,"설계·디자인","카페 조경","카페·상가 조경 아이디어, 손님이 사진 찍는 공간 만들기","정보",4,"B","시공문의","todo"],["LS-053","landscaping",4,3,"관리·전정","꽃나무 가지치기","꽃나무 가지치기, 꽃 진 직후에 해야 하는 이유","정보",5,"B","애드센스","todo"],["LS-054","landscaping",4,4,"업체선택","조경 하자보수","조경공사 하자보수, 나무가 죽으면 누가 책임질까","문제해결",5,"A","시공문의","todo"],["LS-055","landscaping",4,4,"설계·디자인","옥상정원 만들기","옥상정원 만들기, 방수와 하중부터 확인하세요","정보",5,"A","시공문의","todo"],["LS-056","landscaping",4,4,"시공·자재","빗물 저금통","정원 빗물 저금통 설치와 활용","정보",5,"C","쿠팡:빗물통","todo"],["LS-057","landscaping",5,1,"잔디","잔디 깎는 시기","잔디 깎는 시기와 높이, 잔디깎기 기계 고르는 법","구매",6,"A","쿠팡:잔디깎기","todo"],["LS-058","landscaping",5,1,"잔디","잔디 배토","잔디 배토 시기와 두께, 울퉁불퉁한 잔디밭 고르는 법","정보",5,"B","쿠팡:잔디배토","todo"],["LS-059","landscaping",5,1,"관리·전정","소나무 순따기","정원 소나무 순따기 시기와 방법","정보",5,"A","애드센스","todo"],["LS-060","landscaping",5,2,"관리·전정","생울타리 전정","생울타리 다듬기, 시기와 모양 잡는 요령","정보",6,"B","쿠팡:전정가위","todo"],["LS-061","landscaping",5,2,"관리·전정","정원수 병해충","정원수 병해충 달력, 5월부터 생기는 벌레들","문제해결",6,"A","쿠팡:살충제","todo"],["LS-062","landscaping",5,3,"설계·디자인","마당 바비큐 공간","마당 바비큐 공간 만들기, 바닥재와 동선","정보",6,"B","시공문의","todo"],["LS-063","landscaping",5,3,"꽃·지피","여름 화단 꽃","여름 화단 꽃 추천, 더위에 강한 꽃 정리","정보",6,"B","쿠팡:꽃모종","todo"],["LS-064","landscaping",5,4,"시공·자재","정원 연못","작은 정원 연못 만들기, 방수 시트와 펌프","정보",6,"C","쿠팡:연못펌프","todo"],["LS-065","landscaping",5,4,"업체선택","정원 관리 업체","정원 관리 업체 연간 계약, 비용과 범위","비용",5,"A","시공문의","todo"],["LS-066","landscaping",6,1,"관리·전정","장마철 정원 관리","장마철 정원 관리, 배수와 쓰러짐 예방","정보",7,"A","애드센스","todo"],["LS-067","landscaping",6,1,"잔디","잔디 병","잔디가 누렇게 죽을 때, 라지패치 등 잔디 병 구별법","문제해결",7,"A","쿠팡:잔디살균제","todo"],["LS-068","landscaping",6,2,"정원수","나무 고사 원인","새로 심은 나무가 말라 죽는 이유 5가지","문제해결",6,"A","시공문의","todo"],["LS-069","landscaping",6,2,"관리·전정","여름 정원 물주기","여름 정원 물주기, 나무와 잔디는 다르게","정보",7,"B","쿠팡:호스릴","todo"],["LS-070","landscaping",6,3,"꽃·지피","수국 가지치기","수국 가지치기 시기, 내년 꽃눈 지키는 법","정보",7,"B","쿠팡:전정가위","todo"],["LS-071","landscaping",6,3,"설계·디자인","마당 그늘 만들기","여름 마당 그늘 만들기, 차양·파고라·나무 비교","비교",6,"B","시공문의","todo"],["LS-072","landscaping",6,4,"정원수","모기 쫓는 식물","모기 쫓는 식물, 마당에 심으면 정말 효과 있을까","정보",7,"B","쿠팡:허브모종","todo"],["LS-073","landscaping",7,1,"관리·전정","태풍 대비 정원수","태풍 대비 정원수 지주 세우기와 점검","정보",8,"A","쿠팡:수목지주대","todo"],["LS-074","landscaping",7,1,"관리·전정","마당 잡초 관리","여름 마당 잡초 관리, 제초제 없이 줄이는 법","문제해결",7,"A","쿠팡:방초시트","todo"],["LS-075","landscaping",7,2,"잔디","여름 잔디 관리","여름 잔디 관리, 더위에 잔디가 타는 이유","문제해결",7,"B","쿠팡:잔디비료","todo"],["LS-076","landscaping",7,3,"설계·디자인","가을 조경 공사 준비","가을 조경 공사 준비, 7~8월에 견적을 받아야 하는 이유","정보",8,"A","시공문의","todo"],["LS-077","landscaping",7,3,"시공·자재","인조잔디 시공","인조잔디 시공 방법과 배수 처리","정보",8,"B","시공문의","todo"],["LS-078","landscaping",7,4,"꽃·지피","정원 허브","정원에 심기 좋은 허브, 로즈마리·라벤더 월동 여부","정보",7,"C","쿠팡:허브모종","todo"],["LS-079","landscaping",8,1,"잔디","가을 잔디 파종","가을 잔디 파종, 한지형 잔디 씨앗 뿌리는 시기","정보",9,"A","쿠팡:잔디씨앗","todo"],["LS-080","landscaping",8,1,"정원수","가을 식재 나무","가을에 심기 좋은 나무와 심기 전 준비","정보",9,"A","시공문의","todo"],["LS-081","landscaping",8,2,"비용·견적","마당 리모델링 비용","오래된 마당 리모델링 비용, 철거부터 다시 하는 경우","비용",9,"A","시공문의","todo"],["LS-082","landscaping",8,2,"시공·자재","마당 경사면 처리","마당 경사면 처리, 옹벽·조경석·식재 비교","비교",9,"B","시공문의","todo"],["LS-083","landscaping",8,3,"설계·디자인","아파트 1층 정원","아파트 1층 정원·화단 꾸미기","정보",9,"B","쿠팡:화분","todo"],["LS-084","landscaping",8,3,"관리·전정","나무 뿌리 문제","나무 뿌리가 배관과 바닥을 들어 올릴 때","문제해결",9,"B","시공문의","todo"],["LS-085","landscaping",8,4,"업체선택","조경기능사","조경기능사 자격증, 현장에서 쓸모 있을까","정보",9,"C","애드센스","todo"],["LS-086","landscaping",9,1,"꽃·지피","가을 화단 꽃","가을 화단 꽃 추천, 국화·코스모스 말고 다른 선택","정보",9,"B","쿠팡:꽃모종","todo"],["LS-087","landscaping",9,1,"정원수","단풍 정원수","단풍이 예쁜 정원수 추천","정보",10,"A","시공문의","todo"],["LS-088","landscaping",9,1,"잔디","가을 잔디 보수","가을 잔디 보수, 빈 곳 메우기와 통기 작업","정보",9,"A","쿠팡:잔디통기기","todo"],["LS-089","landscaping",9,2,"시공·자재","데크 오일","데크 오일 칠하는 시기와 방법","정보",9,"B","쿠팡:데크오일","todo"],["LS-090","landscaping",9,2,"설계·디자인","사계절 정원","사계절 정원 만들기, 꽃 피는 시기별 식재 계획","정보",10,"A","시공문의","todo"],["LS-091","landscaping",9,3,"정원수","마당 블루베리","마당 블루베리 키우기, 산성 흙 맞추는 법","정보",10,"B","쿠팡:블루베리묘목","todo"],["LS-092","landscaping",9,3,"비용·견적","조경 셀프 업체 비교","조경 셀프 시공 vs 업체 시공, 어디까지 직접 할 수 있을까","비교",9,"A","시공문의","todo"],["LS-093","landscaping",9,4,"업체선택","울산 전원주택 조경","울산 전원주택 조경 시공 사례와 비용","비용",10,"A","시공문의","todo"],["LS-094","landscaping",9,4,"관리·전정","가을 정원수 비료","가을 정원수 비료, 줘야 할까 말아야 할까","정보",9,"C","쿠팡:수목비료","todo"],["LS-095","landscaping",10,1,"정원수","가을 나무 심기","가을 나무 심기 적기와 월동 전 활착 요령","정보",10,"A","시공문의","todo"],["LS-096","landscaping",10,1,"꽃·지피","가을 구근 식물","가을에 심는 구근 식물 정리, 봄 화단 미리 준비","정보",10,"A","쿠팡:구근","todo"],["LS-097","landscaping",10,2,"잔디","잔디 마지막 깎기","잔디 마지막 깎기 높이와 시기","정보",10,"B","애드센스","todo"],["LS-098","landscaping",10,3,"시공·자재","마당 퇴비장","마당 퇴비장 만들기, 낙엽을 거름으로","정보",10,"C","쿠팡:퇴비통","todo"],["LS-099","landscaping",10,3,"업체선택","울산 조경 시공 후기","울산 마당 조경 시공 후기, 시공 전후 비교","경험",10,"A","시공문의","todo"],["LS-100","landscaping",10,4,"설계·디자인","겨울 정원 식물","겨울에도 볼거리 있는 정원 만드는 식물","정보",11,"B","시공문의","todo"],["WB-001","women_biz",11,1,"입찰·나라장터","연말 수의계약","연말 관급공사 수의계약이 몰리는 이유와 준비할 서류","정보",12,"A","애드센스","todo"],["WB-002","women_biz",11,1,"여성기업인증","여성기업확인서 발급","여성기업확인서 발급 방법, 신청부터 현장 확인까지","정보",11,"A","애드센스","todo"],["WB-003","women_biz",11,1,"여성기업인증","여성기업 혜택","여성기업 인증 혜택 총정리, 실제로 체감한 것과 아닌 것","정보",11,"A","애드센스(금융)","todo"],["WB-004","women_biz",11,2,"대표의일","여성 건설업 대표","여성 대표로 조경회사를 운영하며 배운 것","경험",11,"B","애드센스","todo"],["WB-005","women_biz",11,2,"입찰·나라장터","나라장터 입찰 방법","나라장터 입찰 방법, 처음 참가하는 업체를 위한 순서","정보",11,"A","애드센스","todo"],["WB-006","women_biz",11,3,"세무·노무","건설업 연말 결산","건설업 연말 결산 준비, 12월에 미리 챙길 것","정보",12,"B","애드센스(세무)","todo"],["WB-007","women_biz",11,3,"계약·시공관리","기성금 청구","관급공사 기성금 청구 방법과 지급 시기","정보",11,"B","애드센스","todo"],["WB-008","women_biz",11,4,"정책자금·지원사업","내년 정부지원사업 준비","내년 정부지원사업, 11월부터 준비해야 하는 이유","정보",12,"A","애드센스(금융)","todo"],["WB-009","women_biz",11,4,"입찰·나라장터","나라장터 인증서","나라장터 입찰용 인증서와 보안토큰 준비하기","정보",11,"B","애드센스","todo"],["WB-010","women_biz",12,1,"여성기업인증","여성기업 수의계약","여성기업 수의계약 제도, 조건과 한도 확인하는 법","정보",12,"A","애드센스","todo"],["WB-011","women_biz",12,1,"입찰·나라장터","소액 수의계약","지자체 소액 수의계약, 1인 견적과 2인 견적 차이","정보",12,"A","애드센스","todo"],["WB-012","women_biz",12,2,"세무·노무","일용근로소득 지급명세서","건설 일용직 근로소득 지급명세서 제출 방법","정보",1,"A","애드센스(세무)","todo"],["WB-013","women_biz",12,2,"세무·노무","건설근로자 퇴직공제","건설근로자 퇴직공제부금, 신고 대상과 방법","정보",12,"B","애드센스","todo"],["WB-014","women_biz",12,3,"계약·시공관리","준공검사","관급공사 준공검사 준비, 서류와 현장 체크리스트","정보",12,"B","애드센스","todo"],["WB-015","women_biz",12,3,"대표의일","여성기업 대표 1년 결산","여성기업 대표의 1년 결산, 수주·매출·실패 기록","경험",12,"C","애드센스","todo"],["WB-016","women_biz",12,4,"정책자금·지원사업","여성기업 정책자금","여성기업 정책자금 종류와 신청 시기","정보",1,"A","애드센스(금융)","todo"],["WB-017","women_biz",12,4,"입찰·나라장터","입찰 공고문 보는 법","입찰 공고문 읽는 법, 놓치면 탈락하는 항목","정보",12,"A","애드센스","todo"],["WB-018","women_biz",1,1,"정책자금·지원사업","중소기업 지원사업 통합공고","중소기업 지원사업 통합공고, 우리 회사에 맞는 사업 찾는 법","정보",1,"A","애드센스(금융)","todo"],["WB-019","women_biz",1,1,"세무·노무","건설업 부가세 확정신고","건설업 부가세 확정신고, 1월에 놓치기 쉬운 것","정보",1,"A","애드센스(세무)","todo"],["WB-020","women_biz",1,1,"입찰·나라장터","발주계획 공고","연간 발주계획 공고 확인하는 법, 1년 수주 전략 세우기","정보",1,"A","애드센스","todo"],["WB-021","women_biz",1,2,"정책자금·지원사업","소상공인 정책자금","소상공인 정책자금 신청 방법과 준비 서류","정보",1,"A","애드센스(금융)","todo"],["WB-022","women_biz",1,2,"정책자금·지원사업","신용보증재단 보증","지역신용보증재단 보증 대출, 여성기업 우대 확인하기","정보",1,"B","애드센스(금융)","todo"],["WB-023","women_biz",1,3,"여성기업인증","여성기업 공공구매","여성기업 제품 공공구매 제도, 공사업체도 해당될까","정보",1,"B","애드센스","todo"],["WB-024","women_biz",1,3,"건설업등록","건설업 실적신고","건설업 실적신고와 시공능력평가 일정 정리","정보",2,"A","애드센스","todo"],["WB-025","women_biz",1,3,"대표의일","건설사 사업계획","작은 건설사 대표의 연간 사업계획 세우는 법","정보",1,"B","애드센스","todo"],["WB-026","women_biz",1,4,"세무·노무","건설업 4대보험","건설업 4대보험, 현장 인력별로 다른 점","정보",1,"B","애드센스","todo"],["WB-027","women_biz",1,4,"계약·시공관리","공사 계약보증","공사 계약보증금과 보증서 발급 방법","정보",1,"B","애드센스(금융)","todo"],["WB-028","women_biz",2,1,"건설업등록","조경식재 시설물공사업 등록","조경식재·시설물공사업 등록 요건, 자본금·기술인력·사무실","정보",2,"A","애드센스","todo"],["WB-029","women_biz",2,1,"건설업등록","조경공사업 등록","조경공사업(종합) 등록 요건과 전문건설업과의 차이","비교",2,"A","애드센스","todo"],["WB-030","women_biz",2,1,"정책자금·지원사업","여성 창업 지원사업","여성 창업 지원사업 정리, 예비창업자부터 3년 차까지","정보",2,"A","애드센스(금융)","todo"],["WB-031","women_biz",2,2,"정책자금·지원사업","정부지원사업 사업계획서","정부지원사업 사업계획서 작성법, 심사위원이 보는 것","정보",2,"A","애드센스","todo"],["WB-032","women_biz",2,2,"입찰·나라장터","적격심사","관급공사 적격심사, 점수 구조 이해하기","정보",2,"A","애드센스","todo"],["WB-033","women_biz",2,3,"입찰·나라장터","투찰 금액","투찰 금액 정하는 법, 기초금액과 예정가격 이해하기","정보",2,"A","애드센스","todo"],["WB-034","women_biz",2,3,"세무·노무","건설업 법인세","건설업 법인세 신고 준비, 3월 전에 정리할 자료","정보",3,"B","애드센스(세무)","todo"],["WB-035","women_biz",2,4,"대표의일","개인사업자 법인전환","개인사업자에서 법인 전환, 건설업은 언제가 좋을까","비교",2,"A","애드센스(세무)","todo"],["WB-036","women_biz",2,4,"건설업등록","건설업 기술인력 요건","건설업 기술인력 요건, 조경기사·조경산업기사 인정 범위","정보",2,"B","애드센스","todo"],["WB-037","women_biz",3,1,"입찰·나라장터","복수예비가격 낙찰하한율","복수예비가격과 낙찰하한율, 낙찰 원리 쉽게 정리","정보",3,"A","애드센스","todo"],["WB-038","women_biz",3,1,"입찰·나라장터","신속집행 조기발주","상반기 신속집행 시즌, 관급공사 발주가 몰리는 시기","정보",3,"A","애드센스","todo"],["WB-039","women_biz",3,1,"여성기업인증","여성기업 제한경쟁입찰","여성기업 제한경쟁입찰, 공고 찾는 법과 참가 조건","정보",3,"A","애드센스","todo"],["WB-040","women_biz",3,2,"건설업등록","경영상태 평가 신용평가","입찰 경영상태 평가, 신용평가등급 받는 법","정보",3,"B","애드센스(금융)","todo"],["WB-041","women_biz",3,2,"계약·시공관리","관급공사 하도급","관급공사 하도급, 원도급사가 지켜야 할 것","정보",3,"B","애드센스","todo"],["WB-042","women_biz",3,3,"안전","중대재해처벌법 소규모 건설업","중대재해처벌법, 5인 이상 소규모 건설업체가 할 일","정보",3,"A","애드센스","todo"],["WB-043","women_biz",3,3,"정책자금·지원사업","여성기업종합지원센터","여성기업종합지원센터 이용법, 입주와 교육 프로그램","정보",3,"B","애드센스","todo"],["WB-044","women_biz",3,4,"대표의일","여성 대표 현장 소통","현장 반장님들과 일하는 법, 여성 대표의 소통 원칙","경험",3,"B","애드센스","todo"],["WB-045","women_biz",3,4,"세무·노무","부가세 예정신고 예정고지","건설업 부가세 예정신고와 예정고지 차이","정보",4,"C","애드센스(세무)","todo"],["WB-046","women_biz",4,1,"계약·시공관리","관급공사 설계변경","관급공사 설계변경, 증액 요청 절차와 서류","정보",4,"A","애드센스","todo"],["WB-047","women_biz",4,1,"계약·시공관리","물가변동 계약금액 조정","물가변동으로 인한 계약금액 조정, 요건과 신청 방법","정보",4,"A","애드센스","todo"],["WB-048","women_biz",4,2,"안전","산업안전보건관리비","건설업 산업안전보건관리비 사용 기준과 정산","정보",4,"A","애드센스","todo"],["WB-049","women_biz",4,2,"입찰·나라장터","공동도급","공동도급(공동수급) 방식 비교, 처음 해볼 때 주의점","비교",4,"B","애드센스","todo"],["WB-050","women_biz",4,3,"여성기업인증","여성기업 확인 유효기간","여성기업 확인 유효기간과 갱신 준비","정보",4,"B","애드센스","todo"],["WB-051","women_biz",4,3,"정책자금·지원사업","중진공 정책자금","중소벤처기업진흥공단 정책자금, 건설업도 받을 수 있을까","정보",4,"A","애드센스(금융)","todo"],["WB-052","women_biz",4,4,"대표의일","관급공사 민간공사","관급공사와 민간공사, 매출 구조를 어떻게 나눌까","비교",4,"B","애드센스","todo"],["WB-053","women_biz",4,4,"입찰·나라장터","입찰 탈락 이유","관급 입찰에서 계속 떨어지는 이유 5가지","문제해결",4,"A","애드센스","todo"],["WB-054","women_biz",5,1,"세무·노무","건설업 종합소득세","건설업 개인사업자 종합소득세 신고, 경비 처리 정리","정보",5,"A","애드센스(세무)","todo"],["WB-055","women_biz",5,1,"세무·노무","법인 대표 급여","법인 대표 급여 얼마로 정할까, 세금과 4대보험 관점","정보",5,"A","애드센스(세무)","todo"],["WB-056","women_biz",5,2,"안전","폭염 현장 안전","여름 폭염 현장 안전관리, 미리 준비할 것","정보",6,"B","애드센스","todo"],["WB-057","women_biz",5,2,"계약·시공관리","지체상금","관급공사 공기 연장 사유와 지체상금 피하는 법","문제해결",5,"A","애드센스","todo"],["WB-058","women_biz",5,3,"입찰·나라장터","지역제한 입찰","지역제한 입찰, 본사 소재지가 중요한 이유","정보",5,"B","애드센스","todo"],["WB-059","women_biz",5,3,"정책자금·지원사업","한국여성경제인협회","한국여성경제인협회 가입, 네트워크와 실제 도움","경험",5,"B","애드센스","todo"],["WB-060","women_biz",5,4,"대표의일","여성 대표 일과 육아","여성 대표의 일과 육아, 현장과 집 사이 시간 관리","경험",5,"B","애드센스","todo"],["WB-061","women_biz",5,4,"건설업등록","건설공제조합 출자","건설공제조합 출자와 보증, 꼭 해야 할까","정보",5,"B","애드센스(금융)","todo"],["WB-062","women_biz",6,1,"세무·노무","성실신고확인 건설업","성실신고확인 대상 건설업 사업자, 6월 신고 준비","정보",6,"A","애드센스(세무)","todo"],["WB-063","women_biz",6,1,"계약·시공관리","하자보수보증금","하자보수보증금과 하자담보 책임기간","정보",6,"A","애드센스","todo"],["WB-064","women_biz",6,2,"입찰·나라장터","조달청 지자체 발주 차이","조달청 입찰과 지자체 자체 발주 차이","비교",6,"B","애드센스","todo"],["WB-065","women_biz",6,2,"안전","장마철 현장 안전","장마철 건설 현장 안전 점검표","정보",7,"B","애드센스","todo"],["WB-066","women_biz",6,3,"여성기업인증","여성기업 판로 지원","여성기업 판로 지원사업 활용 후기","경험",6,"B","애드센스","todo"],["WB-067","women_biz",6,3,"대표의일","상반기 수주 결산","상반기 수주 결산, 작은 건설사가 보는 숫자","경험",6,"C","애드센스","todo"],["WB-068","women_biz",6,4,"정책자금·지원사업","하반기 정부지원사업","하반기 정부지원사업 일정 미리 보기","정보",7,"A","애드센스(금융)","todo"],["WB-069","women_biz",6,4,"건설업등록","시공능력평가 공시","시공능력평가 공시 결과 보는 법과 활용","정보",7,"B","애드센스","todo"],["WB-070","women_biz",7,1,"세무·노무","1기 부가세 확정신고","건설업 1기 부가세 확정신고 체크리스트","정보",7,"A","애드센스(세무)","todo"],["WB-071","women_biz",7,1,"입찰·나라장터","입찰참가자격 등록","나라장터 입찰참가자격 등록 방법과 업종 추가","정보",7,"A","애드센스","todo"],["WB-072","women_biz",7,2,"계약·시공관리","현장대리인 배치 기준","현장대리인 배치 기준과 겸직 가능 여부","정보",7,"A","애드센스","todo"],["WB-073","women_biz",7,2,"계약·시공관리","공사일보 작성","공사일보와 작업일지, 감독관이 보는 기록","정보",7,"B","애드센스","todo"],["WB-074","women_biz",7,3,"여성기업인증","여성기업 확인 반려","여성기업 확인이 반려되는 경우와 대처","문제해결",7,"B","애드센스","todo"],["WB-075","women_biz",7,3,"안전","건설업 산재보험","건설업 산재보험 가입과 사고 발생 시 처리 순서","정보",7,"A","애드센스","todo"],["WB-076","women_biz",7,4,"대표의일","조경회사 직원 채용","작은 조경회사 직원 채용, 공고부터 정착까지","경험",7,"B","애드센스","todo"],["WB-077","women_biz",7,4,"정책자금·지원사업","중소기업 고용 지원금","중소기업 고용 지원금 정리, 신규 채용 시 확인할 것","정보",7,"A","애드센스(금융)","todo"],["WB-078","women_biz",8,1,"입찰·나라장터","조경공사 입찰 공고","조경공사 입찰 공고 찾는 법, 키워드 알림 설정","정보",8,"A","애드센스","todo"],["WB-079","women_biz",8,1,"계약·시공관리","조경공사 원가계산","조경공사 원가계산서 보는 법, 재료비·노무비·경비","정보",8,"A","애드센스","todo"],["WB-080","women_biz",8,2,"계약·시공관리","녹지 유지관리 용역","공원·녹지 유지관리 용역 입찰, 공사와 다른 점","비교",8,"B","애드센스","todo"],["WB-081","women_biz",8,2,"세무·노무","노무비 구분관리","관급공사 노무비 구분관리와 전자 대금지급 시스템","정보",8,"B","애드센스","todo"],["WB-082","women_biz",8,3,"정책자금·지원사업","신용보증기금 여성기업","신용보증기금 여성기업 보증 우대 확인하기","정보",8,"B","애드센스(금융)","todo"],["WB-083","women_biz",8,3,"대표의일","여성 대표 편견","\"사장님 계세요?\" 여성 대표가 현장에서 듣는 말과 대처","경험",8,"B","애드센스","todo"],["WB-084","women_biz",8,4,"안전","기초안전보건교육","건설업 기초안전보건교육, 신규 인력 투입 전 확인","정보",8,"C","애드센스","todo"],["WB-085","women_biz",9,1,"입찰·나라장터","하반기 관급공사 발주","하반기 관급공사 발주 흐름과 연말까지 수주 전략","정보",9,"A","애드센스","todo"],["WB-086","women_biz",9,1,"계약·시공관리","공사 감독관","공사 감독관과 원활하게 일하는 법","경험",9,"B","애드센스","todo"],["WB-087","women_biz",9,2,"여성기업인증","여성기업 가점","입찰과 평가에서 여성기업 가점 받는 항목 정리","정보",9,"A","애드센스","todo"],["WB-088","women_biz",9,2,"세무·노무","건설업 세금계산서 발행 시기","건설업 세금계산서 발행 시기, 기성과 준공 기준","정보",9,"A","애드센스(세무)","todo"],["WB-089","women_biz",9,3,"정책자금·지원사업","기술개발 지원사업","작은 건설사도 신청할 수 있는 기술개발 지원사업","정보",9,"C","애드센스(금융)","todo"],["WB-090","women_biz",9,3,"건설업등록","건설업 업종 추가","건설업 업종 추가 등록, 조경 회사가 함께 갖는 업종","정보",9,"B","애드센스","todo"],["WB-091","women_biz",9,4,"대표의일","가족 건설사 운영","가족과 함께 운영하는 건설사, 역할과 지분 정리","경험",9,"B","애드센스(세무)","todo"],["WB-092","women_biz",9,4,"안전","위험성평가","소규모 건설 현장 위험성평가 하는 법","정보",9,"B","애드센스","todo"],["WB-093","women_biz",10,1,"세무·노무","10월 부가세 예정신고","10월 부가세 예정신고, 건설업이 챙길 매입 자료","정보",10,"B","애드센스(세무)","todo"],["WB-094","women_biz",10,1,"입찰·나라장터","연말 예산 집행 발주","연말 예산 집행 시즌, 지자체 발주 흐름 읽기","정보",11,"A","애드센스","todo"],["WB-095","women_biz",10,2,"계약·시공관리","공사 대금 미지급","공사 대금이 늦어질 때, 하도급 대금 지급 보증 활용","문제해결",10,"A","애드센스","todo"],["WB-096","women_biz",10,2,"여성기업인증","여성기업 실질 경영 요건","여성기업 인증, 실질 경영 요건에서 주의할 점","정보",10,"A","애드센스","todo"],["WB-097","women_biz",10,3,"정책자금·지원사업","여성기업 지원사업","여성기업 지원사업 총정리, 인증 받은 뒤 바로 신청할 것","정보",10,"A","애드센스(금융)","todo"],["WB-098","women_biz",10,3,"건설업등록","건설업 등록기준 미달","건설업 등록기준 미달 시 행정처분과 대응","문제해결",10,"B","애드센스","todo"],["WB-099","women_biz",10,4,"대표의일","조경 겨울 비수기","조경 겨울 비수기 매출 관리, 여성 대표의 방법","경험",10,"B","애드센스","todo"],["WB-100","women_biz",10,4,"안전","동절기 현장 안전","동절기 건설 현장 안전관리와 공사 중지 기준","정보",11,"C","애드센스","todo"],["BM-001","bmw",11,1,"계절관리","BMW 겨울 타이어","BMW 겨울 타이어 교체, 런플랫 윈터 타이어 고르는 법","구매",11,"A","쿠팡:타이어","todo"],["BM-002","bmw",11,1,"계절관리","BMW 배터리 방전","BMW 겨울철 배터리 방전, 원인과 점프 시동 방법","문제해결",12,"A","쿠팡:점프스타터","todo"],["BM-003","bmw",11,1,"계절관리","BMW 겨울철 관리","BMW 겨울철 차량 관리 체크리스트","정보",12,"A","쿠팡:차량용품","todo"],["BM-004","bmw",11,2,"기능·사용법","BMW 열선 시트","BMW 열선 시트·열선 핸들 설정과 자동 켜짐","정보",12,"B","애드센스","todo"],["BM-005","bmw",11,2,"구매·리스","BMW 연말 프로모션","BMW 연말 프로모션, 할인 조건 확인하는 법","구매",12,"A","애드센스(금융)","todo"],["BM-006","bmw",11,3,"정비·소모품","BMW 워셔액","BMW 겨울용 워셔액 넣는 법과 결빙 예방","정보",11,"C","쿠팡:워셔액","todo"],["BM-007","bmw",11,3,"기능·사용법","My BMW 앱","My BMW 앱 기능 총정리, 원격 기능 활용법","정보",11,"A","애드센스","todo"],["BM-008","bmw",11,3,"정비·소모품","BMW 타이어 공기압 경고등","BMW 타이어 공기압 경고등 리셋 방법","문제해결",11,"A","쿠팡:공기주입기","todo"],["BM-009","bmw",11,4,"법인차","법인차 연두색 번호판","법인차 연두색 번호판 기준, BMW 모델별 해당 여부 확인","정보",11,"A","애드센스","todo"],["BM-010","bmw",11,4,"세금·보험","수입차 자동차보험","수입차 자동차보험료가 비싼 이유와 줄이는 법","비용",11,"A","애드센스(보험)","todo"],["BM-011","bmw",12,1,"구매·리스","BMW 재고차","BMW 연식 변경 시기와 재고차 구매 장단점","비교",12,"A","애드센스(금융)","todo"],["BM-012","bmw",12,1,"세금·보험","자동차세 12월","자동차세 12월 납부와 1월 연납 할인 비교","정보",12,"A","애드센스","todo"],["BM-013","bmw",12,1,"법인차","법인 리스 비용처리","법인 BMW 리스 비용처리, 업무용 승용차 한도 정리","정보",12,"A","애드센스(세무)","todo"],["BM-014","bmw",12,2,"정비·소모품","BMW 엔진오일 교체 주기","BMW 엔진오일 교체 주기, CBS 표시 읽는 법","정보",12,"A","애드센스","todo"],["BM-015","bmw",12,2,"계절관리","BMW 눈길 운전","BMW 후륜·xDrive 눈길 운전 요령","정보",12,"A","쿠팡:스노우체인","todo"],["BM-016","bmw",12,3,"기능·사용법","BMW 디지털 키","BMW 디지털 키 등록과 공유 방법","정보",12,"B","애드센스","todo"],["BM-017","bmw",12,3,"중고·감가","BMW 중고 감가","BMW 중고차 감가율, 모델별로 보는 법","정보",12,"A","애드센스(금융)","todo"],["BM-018","bmw",12,4,"모델비교","BMW 5시리즈 벤츠 E클래스","BMW 5시리즈 vs 벤츠 E클래스, 실제 오너가 고르는 기준","비교",12,"A","애드센스","todo"],["BM-019","bmw",12,4,"정비·소모품","BMW 서비스 인클루시브","BMW 서비스 인클루시브(BSI) 포함 항목과 연장 여부","정보",12,"A","애드센스","todo"],["BM-020","bmw",1,1,"세금·보험","자동차세 연납","자동차세 연납 신청 방법과 할인 확인하기","정보",1,"A","애드센스","todo"],["BM-021","bmw",1,1,"구매·리스","BMW 리스 할부 현금","BMW 리스 vs 할부 vs 현금 구매, 내 상황에 맞는 선택","비교",1,"A","애드센스(금융)","todo"],["BM-022","bmw",1,1,"구매·리스","BMW 구매 시기","BMW 사기 좋은 달은 언제일까","정보",1,"A","애드센스(금융)","todo"],["BM-023","bmw",1,2,"모델비교","BMW 520i 530i","BMW 520i vs 530i, 출력 차이를 체감할까","비교",1,"A","애드센스","todo"],["BM-024","bmw",1,2,"정비·소모품","BMW 경고등 종류","BMW 계기판 경고등 종류와 의미 총정리","정보",1,"A","애드센스","todo"],["BM-025","bmw",1,3,"법인차","여성 대표 법인차","여성 대표의 법인차 선택, BMW를 고른 이유","경험",1,"B","애드센스","todo"],["BM-026","bmw",1,3,"기능·사용법","BMW 무선 카플레이 끊김","BMW 무선 카플레이 연결 끊김 해결법","문제해결",1,"A","쿠팡:차량용품","todo"],["BM-027","bmw",1,4,"중고·감가","BMW 인증중고차","BMW 인증중고차(BPS) 장단점과 일반 중고차 비교","비교",1,"B","애드센스(금융)","todo"],["BM-028","bmw",1,4,"세금·보험","수입차 보험 갱신","수입차 자동차보험 갱신 전 비교해야 할 특약","정보",1,"B","애드센스(보험)","todo"],["BM-029","bmw",2,1,"모델비교","BMW X3 X5","BMW X3 vs X5, 가족 차로 고르는 기준","비교",2,"A","애드센스","todo"],["BM-030","bmw",2,1,"모델비교","BMW 3시리즈 5시리즈","BMW 3시리즈 vs 5시리즈, 첫 BMW로 무엇이 나을까","비교",2,"A","애드센스","todo"],["BM-031","bmw",2,2,"정비·소모품","BMW 브레이크 패드 교체","BMW 브레이크 패드 교체 시기와 경고등","정보",2,"A","애드센스","todo"],["BM-032","bmw",2,2,"구매·리스","BMW 리스 승계","BMW 리스 승계, 넘길 때와 받을 때 주의점","정보",2,"B","애드센스(금융)","todo"],["BM-033","bmw",2,3,"기능·사용법","BMW 드라이빙 모드","BMW 드라이빙 모드(컴포트·스포츠·에코 프로) 차이","정보",2,"B","애드센스","todo"],["BM-034","bmw",2,3,"정비·소모품","BMW 서비스센터 예약","BMW 서비스센터 예약 방법과 대기 줄이는 팁","정보",2,"B","애드센스","todo"],["BM-035","bmw",2,4,"법인차","업무용 승용차 운행기록부","업무용 승용차 운행기록부 작성법, 안 쓰면 생기는 일","정보",2,"A","애드센스(세무)","todo"],["BM-036","bmw",2,4,"모델비교","BMW 전기차 비교","BMW 전기차 i4·i5·iX 비교, 충전과 주행거리","비교",2,"B","애드센스","todo"],["BM-037","bmw",3,1,"계절관리","겨울 타이어 교체 시기","겨울 타이어에서 사계절 타이어로 교체 시기와 보관법","정보",3,"A","쿠팡:타이어보관커버","todo"],["BM-038","bmw",3,1,"계절관리","BMW 에어컨 필터","BMW 에어컨 필터(마이크로 필터) 교체 시기와 방법","정보",3,"A","쿠팡:에어컨필터","todo"],["BM-039","bmw",3,1,"정비·소모품","BMW 사설 정비","BMW 공식 서비스센터 vs 사설 정비소 비교","비교",3,"A","애드센스","todo"],["BM-040","bmw",3,2,"기능·사용법","BMW 주차 어시스턴트","BMW 주차 어시스턴트와 후진 어시스턴트 사용법","정보",3,"B","애드센스","todo"],["BM-041","bmw",3,2,"정비·소모품","BMW 블랙박스","BMW 블랙박스 설치, 상시 녹화와 배터리 보호 설정","구매",3,"A","쿠팡:블랙박스","todo"],["BM-042","bmw",3,3,"계절관리","황사철 세차","황사철 세차 방법, 유리막 코팅 차량 관리","정보",3,"B","쿠팡:세차용품","todo"],["BM-043","bmw",3,3,"구매·리스","BMW 시승 신청","BMW 시승 신청 방법과 시승 때 확인할 것","정보",3,"B","애드센스","todo"],["BM-044","bmw",3,4,"모델비교","BMW X1 X3","BMW X1 vs X3, 크기 차이와 실사용 비교","비교",3,"B","애드센스","todo"],["BM-045","bmw",3,4,"중고·감가","BMW 리스 만기","BMW 리스 만기 반납 vs 인수, 잔존가치 계산","비교",3,"A","애드센스(금융)","todo"],["BM-046","bmw",4,1,"정비·소모품","BMW 런플랫 타이어 교체 비용","BMW 런플랫 타이어 교체 비용과 일반 타이어 교체 가능 여부","비용",4,"A","쿠팡:타이어","todo"],["BM-047","bmw",4,1,"정비·소모품","BMW 휠 얼라인먼트","BMW 휠 얼라인먼트 점검 시기와 핸들 쏠림","문제해결",4,"B","애드센스","todo"],["BM-048","bmw",4,2,"기능·사용법","BMW 드라이빙 어시스턴트","BMW 드라이빙 어시스턴트 프로페셔널 기능과 고속도로 활용","정보",4,"A","애드센스","todo"],["BM-049","bmw",4,2,"구매·리스","BMW 옵션 패키지","BMW 옵션 패키지 고르는 법, 꼭 넣을 것과 빼도 될 것","구매",4,"A","애드센스","todo"],["BM-050","bmw",4,3,"계절관리","봄 드라이브 코스","BMW 오너 추천 봄 드라이브 코스","경험",4,"C","애드센스","todo"],["BM-051","bmw",4,3,"정비·소모품","신차 PPF 썬팅","신차 PPF와 썬팅, 순서와 비용","비용",4,"B","애드센스","todo"],["BM-052","bmw",4,4,"모델비교","BMW 5시리즈 i5","BMW 5시리즈 내연기관 vs i5 전기차, 유지비 비교","비교",4,"A","애드센스","todo"],["BM-053","bmw",4,4,"중고·감가","BMW 중고차 구매","BMW 중고차 살 때 꼭 확인할 정비 이력","정보",4,"A","애드센스(금융)","todo"],["BM-054","bmw",5,1,"기능·사용법","BMW 드라이빙 센터","BMW 드라이빙 센터 프로그램과 예약 후기","경험",5,"A","애드센스","todo"],["BM-055","bmw",5,1,"정비·소모품","BMW 냉각수 경고등","BMW 냉각수 경고등, 보충 방법과 점검이 필요한 신호","문제해결",5,"A","쿠팡:냉각수","todo"],["BM-056","bmw",5,2,"정비·소모품","BMW 와이퍼 교체","BMW 와이퍼 교체 방법, 서비스 포지션 설정","정보",6,"A","쿠팡:와이퍼","todo"],["BM-057","bmw",5,2,"기능·사용법","BMW iDrive 기능","BMW iDrive 숨은 기능 10가지","정보",5,"A","애드센스","todo"],["BM-058","bmw",5,3,"구매·리스","BMW 출고 대기","BMW 계약부터 출고까지 순서와 대기 기간 확인법","정보",5,"B","애드센스","todo"],["BM-059","bmw",5,3,"모델비교","BMW 1시리즈 2시리즈","BMW 1시리즈 vs 2시리즈 그란쿠페, 엔트리 BMW 비교","비교",5,"B","애드센스","todo"],["BM-060","bmw",5,4,"세금·보험","수입차 사고 처리","수입차 사고 처리, 렌트비와 수리비 분쟁 줄이는 법","문제해결",5,"A","애드센스(보험)","todo"],["BM-061","bmw",6,1,"세금·보험","자동차세 6월","자동차세 6월 납부, 배기량별 계산 확인하기","정보",6,"A","애드센스","todo"],["BM-062","bmw",6,1,"계절관리","장마철 차량 관리","장마철 BMW 관리, 와이퍼·발수코팅·습기 제거","정보",7,"A","쿠팡:발수코팅제","todo"],["BM-063","bmw",6,2,"계절관리","BMW 에어컨 냄새","BMW 에어컨 냄새 원인과 제거 방법","문제해결",7,"A","쿠팡:에어컨탈취제","todo"],["BM-064","bmw",6,2,"정비·소모품","BMW 오일 누유","BMW 오일 누유 점검, 바닥에 떨어진 액체 구별법","문제해결",6,"A","애드센스","todo"],["BM-065","bmw",6,3,"기능·사용법","BMW 오토 스타트 스톱","BMW 오토 홀드와 오토 스타트 스톱 끄는 법","정보",6,"A","애드센스","todo"],["BM-066","bmw",6,3,"중고·감가","BMW 내 차 팔기","BMW 내 차 팔기, 딜러 매입과 경매 비교","비교",6,"B","애드센스(금융)","todo"],["BM-067","bmw",6,4,"법인차","법인 명의 개인 명의","법인 명의 vs 개인 명의 BMW, 세금과 보험 비교","비교",6,"A","애드센스(세무)","todo"],["BM-068","bmw",6,4,"모델비교","BMW X5 벤츠 GLE","BMW X5 vs 벤츠 GLE, 대형 SUV 비교","비교",6,"B","애드센스","todo"],["BM-069","bmw",7,1,"계절관리","휴가 장거리 차량 점검","여름 휴가 장거리 운전 전 BMW 점검 리스트","정보",7,"A","쿠팡:차량용품","todo"],["BM-070","bmw",7,1,"계절관리","여름 차 실내 온도","여름 차 실내 온도 낮추는 법, 원격 공조 활용","정보",7,"B","쿠팡:햇빛가리개","todo"],["BM-071","bmw",7,2,"정비·소모품","BMW 배터리 교체","BMW 배터리 교체 비용과 배터리 등록이 필요한 이유","비용",7,"A","애드센스","todo"],["BM-072","bmw",7,2,"기능·사용법","BMW 실연비","BMW 실연비 기록, 연비 좋게 타는 습관","경험",7,"B","애드센스","todo"],["BM-073","bmw",7,3,"정비·소모품","BMW 소모품 교체 주기","BMW 소모품 교체 주기표, 주행거리별 정리","정보",7,"A","애드센스","todo"],["BM-074","bmw",7,3,"구매·리스","BMW 장기렌트 리스","BMW 장기렌트 vs 리스, 보험과 비용 차이","비교",7,"A","애드센스(금융)","todo"],["BM-075","bmw",7,4,"기능·사용법","BMW 소프트웨어 업데이트","BMW 무선 소프트웨어 업데이트(OTA) 하는 법","정보",7,"B","애드센스","todo"],["BM-076","bmw",7,4,"법인차","업무용 승용차 감가상각","업무용 승용차 감가상각, 연간 한도와 이월 처리","정보",7,"B","애드센스(세무)","todo"],["BM-077","bmw",8,1,"계절관리","침수차 보험 처리","폭우 때 침수 도로 대처와 침수차 보험 처리","문제해결",8,"A","애드센스(보험)","todo"],["BM-078","bmw",8,1,"정비·소모품","BMW 가죽 시트 관리","BMW 가죽 시트 관리와 실내 세차 방법","정보",8,"B","쿠팡:가죽클리너","todo"],["BM-079","bmw",8,2,"모델비교","BMW X3 제네시스 GV70","BMW X3 vs 제네시스 GV70, 중형 SUV 실사용 비교","비교",8,"A","애드센스","todo"],["BM-080","bmw",8,2,"기능·사용법","BMW 헤드업 디스플레이","BMW 헤드업 디스플레이 설정과 편광 선글라스 문제","정보",8,"C","애드센스","todo"],["BM-081","bmw",8,3,"정비·소모품","BMW 하체 소음","BMW 하체 소음 원인 구별, 정비소 가기 전 확인","문제해결",8,"B","애드센스","todo"],["BM-082","bmw",8,3,"중고·감가","BMW 보증 연장","BMW 보증 연장 프로그램, 가입할 가치가 있을까","정보",8,"B","애드센스(보험)","todo"],["BM-083","bmw",8,4,"구매·리스","BMW 신차 검수","BMW 신차 인수할 때 확인할 체크리스트","정보",8,"A","애드센스","todo"],["BM-084","bmw",9,1,"계절관리","추석 귀성길 차량 점검","추석 귀성길 전 차량 점검 5가지","정보",9,"A","쿠팡:차량용품","todo"],["BM-085","bmw",9,1,"모델비교","BMW 신형 출시","BMW 신형 출시 정보 정리, 기존 모델과 달라진 점","정보",9,"A","애드센스","todo"],["BM-086","bmw",9,1,"기능·사용법","BMW 내비게이션 업데이트","BMW 내비게이션 지도 업데이트 방법","정보",9,"B","애드센스","todo"],["BM-087","bmw",9,2,"정비·소모품","BMW 점화플러그","BMW 점화플러그 교체 주기와 엔진 떨림","문제해결",9,"B","애드센스","todo"],["BM-088","bmw",9,2,"세금·보험","수입차 보험 대물 한도","수입차 보험 대물 한도와 특약, 사고 나보고 알게 된 것","경험",9,"A","애드센스(보험)","todo"],["BM-089","bmw",9,3,"구매·리스","BMW 하반기 프로모션","BMW 하반기 프로모션 흐름과 협상 포인트","구매",9,"A","애드센스(금융)","todo"],["BM-090","bmw",9,3,"법인차","법인 리스 계약서","법인 리스 계약서 볼 때 확인할 항목","정보",9,"B","애드센스(금융)","todo"],["BM-091","bmw",9,4,"중고·감가","BMW 유지비","BMW 5년 유지비 실제 기록, 정비·보험·세금 합계","경험",9,"A","애드센스","todo"],["BM-092","bmw",9,4,"기능·사용법","BMW 음성 명령","BMW 인텔리전트 퍼스널 어시스턴트 음성 명령 정리","정보",9,"C","애드센스","todo"],["BM-093","bmw",10,1,"계절관리","가을 단풍 드라이브","BMW 오너 추천 가을 단풍 드라이브 코스","경험",10,"B","애드센스","todo"],["BM-094","bmw",10,1,"계절관리","겨울 전 차량 점검","겨울 오기 전 BMW 점검, 10월에 하면 좋은 것","정보",10,"A","쿠팡:차량용품","todo"],["BM-095","bmw",10,2,"정비·소모품","BMW 미션오일","BMW 미션오일 교체, 무교환이라는 말의 진실","정보",10,"B","애드센스","todo"],["BM-096","bmw",10,2,"정비·소모품","BMW 디퍼렌셜 오일","BMW xDrive 디퍼렌셜·트랜스퍼 오일 점검","정보",10,"C","애드센스","todo"],["BM-097","bmw",10,3,"모델비교","BMW 플러그인 하이브리드","BMW 플러그인 하이브리드, 충전 안 하면 손해일까","정보",10,"B","애드센스","todo"],["BM-098","bmw",10,3,"기능·사용법","BMW 오토 하이빔","BMW 오토 하이빔과 전조등 설정 방법","정보",10,"B","애드센스","todo"],["BM-099","bmw",10,4,"구매·리스","BMW 리스 견적 비교","BMW 리스 견적 비교하는 법, 같은 차도 조건이 다른 이유","비교",10,"A","애드센스(금융)","todo"],["BM-100","bmw",10,4,"세금·보험","수입차 정기검사","수입차 정기검사 시기와 미리 점검할 것","정보",10,"B","애드센스","todo"]],"voices":{"kkomongmom":"# 꼬몽맘 목소리 (정보 글)\n\n네이버 블로그 samil5240의 꼬몽맘 글 97편을 분석해 만든 규칙입니다. 이 블로그의 새 글은 정보 글이므로 체험 리뷰보다 차분한 \"정보 글\" 톤을 기준으로 합니다.\n\n## 화자\n\n- 닉네임은 꼬몽맘. 반려견 푸들 꼬몽이의 엄마이고 울산에 산다.\n- 가족 호칭: 아빠 = 꼬몽할배, 엄마 = 꼬몽그랜드맘. 아빠는 30여 년 농사·조경을 해 왔다.\n- 직접 배우고 따 보는 사람이다. 거푸집기능사, 식물보호기사·식물보호산업기사(실기 만점)를 땄고 운동을 꾸준히 한다.\n- 글은 늘 \"내가 직접 해 보고 알게 된 것\"에서 출발한다. 경험이 없으면 경험한 척하지 않는다.\n\n## 말투\n\n- 기본은 해요체. \"~습니다\"를 글 전체에서 4~6번 섞어 차분하고 믿음직하게 쓴다.\n- 친근한 변형 어미(~했어용, ~입니당, ~하쥬?, ~했다능)는 글 전체에서 1~2번만 쓴다.\n- 자주 쓰는 말: 넘나, 진짜, 엄청, 완전, 꼭!, 추천드려요. 같은 말을 연달아 반복하지 않는다.\n- 사진이나 결과를 보여 줄 때 \"뚜둔!\" 또는 \"짜잔!\"을 한 번 쓴다.\n- 이모티콘은 >.< ^^ ㅠㅠ ㅎㅎ 중에서 문단당 최대 1개, 글 전체 5~8개. 정보 글에서 ㅋㅋㅋ는 쓰지 않는다.\n- 괄호 속 속마음이나 가벼운 셀프 디스를 글에 1~2번 넣는다. 예: (사실 저도 처음엔 몰랐어요 ㅠ), (말이 쉽지 생각보다 어려워요 ㅠ)\n- 독자는 \"이웃님들\" 또는 \"~하시는 분들\"로 부른다.\n- 꼭 지켜야 할 팁은 단호하게 쓴다: \"꼭 ~하세요!\", \"~는 금물!\", \"여기서 중요한 점!\"\n- 과장 광고 문구, 근거 없는 최상급, 보도자료 같은 딱딱한 문장은 쓰지 않는다.\n\n## 형식 (네이버 모바일 기준)\n\n- 한 줄은 15~25자. 문장이 길면 의미 단위에서 줄을 바꾼다. 마크다운에서는 줄마다 줄바꿈하고, 덩어리 사이에 빈 줄을 둔다.\n- 2~4줄마다 빈 줄을 둔다. 한 덩어리에 5줄을 넘기지 않는다.\n- 사진 자리 → 그 사진을 설명하는 2~4줄 → 빈 줄의 리듬을 반복한다. 사진 자리는 7~10곳.\n- 핵심 정보는 **굵게** 한다. 글 전체에서 4~8곳.\n- 단계는 소제목(##)과 번호 목록으로 나눈다. 소제목은 짧은 명사구나 질문형으로 쓴다.\n- 끝부분에 인용구(>)로 \"총정리\" 또는 \"이런 분께 추천!\"을 3~5줄로 정리한다.\n- 업체나 장소가 나오면 주차 가능 여부를 쓰고, 가격·시간·수량은 구체적인 숫자로 쓴다. 확실하지 않은 숫자는 [확인 필요]로 남긴다.\n\n## 글의 흐름\n\n1. 첫 줄 인사: \"안녕하세요! 꼬몽맘입니다.\"\n2. 공감 질문이나 이 주제를 알게 된 계기를 2~3줄로 쓴다. 예: \"~해서 곤란한 적 많으시죠?\", \"저는 ~하다가 알게 되었어요\"\n3. 결론을 굵게 1~2줄로 먼저 말한다.\n4. 소제목 3~5개로 방법과 경험을 쓴다. 아빠(꼬몽할배)에게 들은 현장 팁은 \"아빠 말로는~\"처럼 인용할 수 있다. 단, 운영자 메모에 있는 내용만 인용한다.\n5. \"여기서 중요한 점!\" 또는 \"아 참,\"으로 주의할 점을 강조한다.\n6. 인용구로 총정리한다.\n7. 응원으로 마무리한다. 예: \"~해 보아요 >.<\", \"궁금하신 점은 댓글로 남겨주세요!\", \"올해 텃밭 풍년 되시길 바랄게요 ^^\"\n\n## 문장 예시 (실제 글에서)\n\n- 오늘은 노트북과 컴퓨터에 들어있는 하드디스크를 분리하여 / 외장하드로 사용하는 방법을 알려드리겠습니다.\n- 여기서 가장 중요한 팁을 알려드릴게요!\n- 응시 조건이 될까 안될까 전전긍긍하지마세요!\n- 여성기업을 준비하시는 분은 / 실질적으로 여성 대표자가 경영을 하는지, / 회사에 대해 잘 알고 있는지 조사관이 물으니 / 그 부분에 대해 확실히 공부하고 / 여성기업을 신청하셔야겠습니다!\n- 번거롭긴 하지만 현장 근무자들을 위해 / 꼭 챙겨드리자구요!!\n- 짜자 잔!! / 정말 놀랍지 않나요??\n\n(/는 실제 글에서 줄을 바꾼 위치)","grandpa":"# 꼬몽할배 목소리 (아빠 코너)\n\n블로그 samil5240에서 아버님이 쓰신 글 21편을 분석해 만든 규칙입니다. 이 블로그에서 댓글이 가장 많았던 4편이 모두 아버님의 텃밭·조경 글입니다.\n\n## 화자\n\n- 꼬몽할배. 꼬몽맘의 아빠. 30여 년 농사와 조경을 해 왔고 육묘장과 조경회사를 운영한다.\n- 집 옥상에 정원과 텃밭을 직접 가꾼다. 수필 쓰기가 취미다.\n- 딸은 \"공쥬\" 또는 \"우리 공쥬\", 아내는 \"아내\"라고 부른다. 꼬몽이를 \"녀석\"이라고 부르며 귀여워한다.\n\n## 말투\n\n- \"~답니다\", \"~거예요\", \"~해요\"가 기본이다. 가르치기보다 옆에서 이야기해 주듯 쓴다.\n- 독자를 \"이웃님들\"이라고 부르고 \"아시죠?\", \"놀랍죠?\", \"신기하죠?\"로 말을 건다.\n- 문장 끝에 \"ᆢ\"를 붙여 여운을 남긴다. 글 전체에서 3~5번만 쓴다.\n- 옛 기억, 속담이나 한자성어(화무십일홍 등), 생활 속 비유로 글을 연다.\n- 아내나 딸, 꼬몽이와 있었던 일로 가볍게 웃긴다. 단, 운영자 메모에 있는 일화만 쓴다.\n- ㅋㅋ, ㅎㅎ는 글 전체에서 1~2번. 이모티콘 >.<는 쓰지 않는다.\n- 끝인사는 계절에 맞춘 축복으로 한다. 예: \"이웃님들 행복한 봄날 되세요.\", \"풍년농사 되세요.\"\n\n## 형식\n\n- 왼쪽 정렬. 한 문단은 2~4문장. 글 길이는 900~1,500자.\n- 사진 자리 6~10곳. 사진마다 한두 문장으로 설명한다.\n- 순위형(\"5위 고추 → 1위 대파\"), 비교형(\"이렇게 하면 안 되고요, 이렇게 심는답니다\"), 단계형을 즐겨 쓴다.\n- 제목에 \"꿀팁\"이나 \"ㅡ\"를 붙이기도 한다. 예: \"고구마 심는 방법 ㅡ꿀팁\"\n- \"식물도 사람과 다르지 않다\"처럼 식물의 본능이나 이치를 설명하는 대목을 하나 넣는다.\n\n## 문장 예시 (실제 글에서)\n\n- 허나 대낮의 기온을 보고 텃밭에 채소 모종을 심었다가는 낭패를 보기 십상입니다.\n- 서리오면 흔적도 없이 죽어요.\n- 농사는 하느님과 동업하는것이라는 말처럼 날씨가 도움이 안되면 몇번씩을 땜빵하느라 진땀을 빼신적 있을겁니다.\n- 한여름 휴가도 안 가고 고추에 물 주려면 심으시고요.ㅎㅎ\n- 식물들과 30여년을 함께 살아오며 알고 있었던 상식과 그들(식물)의 본능을 글로써 옮겨봤네요.\n- 이웃님들 건강하고 행복한 오월되세요."}};
+
+// ------------------------------------------------------------------ 기본 값
+const TOPIC = Object.fromEntries(DATA.topics.map(t => [t.key, t]));
+const KW = new Map(DATA.keywords.map(r => {
+  const [id, topic, month, week, category, keyword, title, intent, peak, priority, monetize, status] = r;
+  return [id, { id, topic, month, week, category, keyword, title, intent, peak, priority, monetize, status, builtin: true }];
+}));
+const STATUS_LABEL = { todo: "예정", draft: "초안", published: "발행", skip: "건너뜀" };
+const INTENT_GUIDE = {
+  "정보": "검색한 사람이 바로 따라 할 수 있게 시기·방법·순서를 구체적으로 정리한다.",
+  "문제해결": "증상 → 원인 → 지금 할 수 있는 대처 → 예방 순서로 쓴다.",
+  "비교": "첫머리에 비교표를 두고, 어떤 사람에게 어느 쪽이 맞는지 결론을 분명히 낸다.",
+  "구매": "고르는 기준과 사기 전 체크리스트를 중심으로 쓰고, 특정 상품을 과장해 추천하지 않는다.",
+  "비용": "비용을 좌우하는 요소를 나눠 설명하고, 금액은 범위로만 쓰되 확실하지 않으면 확인 필요로 표시한다.",
+  "경험": "운영자의 경험 메모를 중심으로 이야기처럼 쓰고, 독자가 가져갈 교훈으로 마무리한다.",
+};
+const COUPANG = "이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.";
+const today = new Date();
+const NOW_MONTH = today.getMonth() + 1;
+const WOM = Math.min(4, Math.floor((today.getDate() - 1) / 7) + 1);
+
+const state = {
+  topic: "all", month: NOW_MONTH, selected: null,
+  kw: {},        // id -> {status, memo, postUrl, custom}
+  drafts: {},    // id -> draft
+  voice: "kkomongmom", tier: "default",
+  generating: false, ctl: null, streamText: "", editing: false, ownForm: false,
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const lsGet = k => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+function keyword(id) {
+  const base = KW.get(id) || state.kw[id]?.custom;
+  if (!base) return null;
+  const s = state.kw[id] || {};
+  return { ...base, id, status: s.status || base.status || "todo", memo: s.memo || "", postUrl: s.postUrl || "", updatedAt: s.updatedAt || "" };
+}
+function allKeywords() {
+  const ids = new Set([...KW.keys(), ...Object.keys(state.kw).filter(id => state.kw[id]?.custom)]);
+  return [...ids].map(keyword).filter(Boolean);
+}
+const monthOffset = (m, now) => ((m - now) % 12 + 12) % 12;
+function isDue(k) {
+  if (k.status !== "todo") return false;
+  const off = monthOffset(k.month, NOW_MONTH);
+  return (off === 11 && monthOffset(k.peak, NOW_MONTH) <= 2) || (off === 0 && k.week <= WOM);
+}
+
+// ------------------------------------------------------------------ 저장소 (db 또는 이 기기)
+const Store = {
+  mode: "local", db: null, timers: {},
+  async init() {
+    const local = lsGet("glgongbang") || {};
+    state.kw = local.kw || {}; state.drafts = local.drafts || {};
+    render();
+    let db = null, user = null;
+    try { [db, user] = await Promise.all([claude.use("db"), claude.use("user")]); } catch {}
+    const canEdit = user ? await user.canEdit().catch(() => null) : null;
+    if (!db || canEdit === false) {
+      note(db ? "보기 권한으로 열려 있어요. 메모와 초안은 이 기기에만 저장됩니다." : "", "info");
+      return;
+    }
+    this.db = db; this.mode = "db";
+    $("save-state").textContent = "불러오는 중…";
+    const slow = setTimeout(() => { $("save-state").textContent = "저장소 응답이 늦어요"; }, 10000);
+    db.collection("kw").onSnapshot(snap => {
+      clearTimeout(slow);
+      const next = {};
+      snap.docs.forEach(d => { next[d.id] = d.data(); });
+      state.kw = next; $("save-state").textContent = "저장됨 · 모든 기기에서 같이 보여요";
+      render();
+    }, () => { clearTimeout(slow); this.fallback(); });
+    db.collection("drafts").onSnapshot(snap => {
+      const next = {};
+      snap.docs.forEach(d => { next[d.id] = d.data(); });
+      state.drafts = next;
+      if (!state.selected) {
+        const latest = Object.values(next).sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""))[0];
+        if (latest) state.selected = latest.kwId;
+      }
+      render();
+    }, () => this.fallback());
+  },
+  fallback() {
+    if (this.mode !== "db") return;
+    this.mode = "local"; this.db = null;
+    note("공유 저장소에 연결하지 못했어요. 지금부터는 이 기기에만 저장됩니다.", "warn");
+  },
+  persistLocal() { if (this.mode === "local") lsSet("glgongbang", { kw: state.kw, drafts: state.drafts }); },
+  async saveKw(id, patch) {
+    state.kw[id] = { ...(state.kw[id] || {}), ...patch, updatedAt: new Date().toISOString() };
+    this.persistLocal(); render();
+    if (this.mode === "db") {
+      try { await this.db.doc("kw/" + id).set({ ...state.kw[id] }); $("save-state").textContent = "저장됨 · 모든 기기에서 같이 보여요"; }
+      catch (e) { note("저장하지 못했어요 (" + (e?.code || "오류") + "). 잠시 후 다시 해 주세요.", "warn"); }
+    } else { $("save-state").textContent = "이 기기에 저장됨"; }
+  },
+  saveMemoSoon(id, memo) {
+    clearTimeout(this.timers[id]);
+    $("save-state").textContent = "메모 입력 중…";
+    this.timers[id] = setTimeout(() => this.saveKw(id, { memo }), 900);
+  },
+  async saveDraft(id, draft) {
+    state.drafts[id] = { ...draft, updatedAt: new Date().toISOString() };
+    this.persistLocal(); render();
+    if (this.mode === "db") {
+      try { await this.db.doc("drafts/" + id).set({ ...state.drafts[id] }); }
+      catch (e) { note("초안을 저장하지 못했어요 (" + (e?.code || "오류") + "). 본문을 복사해 두세요.", "warn"); }
+    }
+  },
+};
+
+function note(text, tone) {
+  const n = $("note");
+  n.hidden = !text; n.textContent = text || ""; n.dataset.tone = tone || "info";
+}
+
+// ------------------------------------------------------------------ 마크다운 → 네이버 미리보기 HTML
+const PH = /\[(사진|경험 추가|확인 필요|제휴):\s*([^\]]+)\]/g;
+const PH_ICON = { "사진": "📷", "경험 추가": "✍️", "확인 필요": "⚠️", "제휴": "🔗" };
+function inline(s) {
+  let t = esc(s);
+  t = t.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (m, label, url) => `<a href="${url}" target="_blank" rel="noopener">${label}</a>`);
+  t = t.replace(/\*\*([\s\S]+?)\*\*/g, "<strong>$1</strong>");
+  t = t.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>");
+  t = t.replace(PH, (m, kind, body) => `<span class="ph ph-${kind.slice(0, 2)}">${PH_ICON[kind]} ${kind}: ${body}</span>`);
+  return t;
+}
+function mdToHtml(md) {
+  const lines = String(md).replace(/\r/g, "").split("\n");
+  const out = []; let i = 0;
+  const isTableSep = l => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l);
+  const cells = l => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
+  while (i < lines.length) {
+    const l = lines[i];
+    if (!l.trim()) { i++; continue; }
+    let m;
+    if ((m = l.match(/^(#{1,3})\s+(.*)$/))) { const n = Math.max(2, m[1].length); out.push(`<h${n}>${inline(m[2])}</h${n}>`); i++; continue; }
+    if (/^\s*(-{3,}|\*{3,})\s*$/.test(l)) { out.push("<hr>"); i++; continue; }
+    if (l.includes("|") && i + 1 < lines.length && isTableSep(lines[i + 1])) {
+      const head = cells(l); i += 2; const rows = [];
+      while (i < lines.length && lines[i].includes("|") && lines[i].trim()) { rows.push(cells(lines[i])); i++; }
+      out.push(`<div class="tbl"><table><thead><tr>${head.map(c => `<th>${inline(c)}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${inline(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`);
+      continue;
+    }
+    if (/^>\s?/.test(l)) {
+      const buf = [];
+      while (i < lines.length && /^>\s?/.test(lines[i])) { buf.push(lines[i].replace(/^>\s?/, "")); i++; }
+      out.push(`<blockquote>${inline(buf.join("\n")).replace(/\n/g, "<br>")}</blockquote>`); continue;
+    }
+    if (/^\s*[-*]\s+/.test(l)) {
+      const buf = [];
+      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) { buf.push(lines[i].replace(/^\s*[-*]\s+/, "")); i++; }
+      out.push(`<ul>${buf.map(x => `<li>${inline(x)}</li>`).join("")}</ul>`); continue;
+    }
+    if (/^\s*\d+[.)]\s+/.test(l)) {
+      const buf = [];
+      while (i < lines.length && /^\s*\d+[.)]\s+/.test(lines[i])) { buf.push(lines[i].replace(/^\s*\d+[.)]\s+/, "")); i++; }
+      out.push(`<ol>${buf.map(x => `<li>${inline(x)}</li>`).join("")}</ol>`); continue;
+    }
+    const buf = [];
+    while (i < lines.length && lines[i].trim() && !/^(#{1,3}\s|>|\s*[-*]\s+|\s*\d+[.)]\s+)/.test(lines[i])
+           && !(lines[i].includes("|") && i + 1 < lines.length && isTableSep(lines[i + 1]))) { buf.push(lines[i]); i++; }
+    out.push(`<p>${inline(buf.join("\n")).replace(/\n/g, "<br>")}</p>`);
+  }
+  return out.join("\n");
+}
+function countPlaceholders(md) {
+  const c = { "사진": 0, "경험 추가": 0, "확인 필요": 0, "제휴": 0 };
+  for (const m of String(md).matchAll(PH)) c[m[1]]++;
+  return c;
+}
+
+// ------------------------------------------------------------------ 프롬프트
+function buildPrompt(k, voiceKey) {
+  const t = TOPIC[k.topic];
+  const grandpa = voiceKey === "grandpa";
+  const voiceText = DATA.voices[voiceKey];
+  const greeting = grandpa ? "안녕하세요, 꼬몽할배입니다." : DATA.greeting;
+  const memo = (k.memo || "").trim() || "(없음: 경험이 필요한 자리는 [경험 추가] 표시로 남겨 주세요)";
+  return `당신은 아래 운영자를 대신해 네이버 블로그 글 초안을 쓰는 작가입니다. 운영자가 초안을 검토하고 사진과 경험을 더해 발행합니다.
+
+[운영자] ${t.persona}${grandpa ? "\n이번 글은 운영자의 아빠 꼬몽할배가 화자입니다." : ""}
+[블로그 주제] ${t.name}
+[주요 독자] ${t.audience}
+
+글쓰기 원칙
+- 화자의 1인칭 목소리로, 친근하지만 정확하게 씁니다.
+- 본문 첫 줄은 "${greeting}"로 시작합니다.
+- 첫 문단에서 검색한 사람이 가장 궁금해할 답을 먼저 줍니다.
+- 소제목(##) 3~6개, 필요하면 번호 목록과 표를 씁니다. 표는 휴대폰에서 보이도록 4칸 이하로 만듭니다.
+- 본문 분량은 공백 포함 1,500~2,500자입니다.
+- 키워드는 제목, 첫 문단, 소제목 1~2곳에 자연스럽게 넣고 억지로 반복하지 않습니다.
+- 끝에 '자주 묻는 질문' 소제목과 질문 2~3개, 짧은 마무리 문단을 둡니다.
+
+지어내지 말 것 (가장 중요, 문체 가이드보다 우선)
+- 경험 메모에 없는 구체적 경험(날짜, 수량, 매출, 사건, 가족·고객 이야기)을 만들어내지 않습니다. 경험이 들어가면 좋은 자리에는 [경험 추가: 무엇을 쓰면 좋은지]라고 표시합니다.
+- 가격, 비율, 법령, 제도 요건, 한도, 신고 기한, 차량 사양처럼 바뀌거나 틀리기 쉬운 사실은 확실하지 않으면 단정하지 말고 [확인 필요: 무엇을 확인할지]라고 표시합니다.
+- 사진이 들어가면 좋은 자리에 [사진: 찍을 장면] 표시를 6~10개 넣습니다.
+- 제휴 상품을 소개하기 좋은 자리가 있으면 [제휴: 상품 종류] 표시를 1~2개 넣습니다. 상품명이나 링크는 쓰지 않습니다.
+- 본문에 광고 고지, 면책 문구는 넣지 않습니다. 필요한 문구는 프로그램이 따로 붙입니다.
+
+[문체 가이드]
+${voiceText}
+
+[이번 글]
+- 핵심 키워드: ${k.keyword}
+- 제목 아이디어: ${k.title}
+- 분류: ${k.category}
+- 검색 의도: ${k.intent} → ${INTENT_GUIDE[k.intent] || INTENT_GUIDE["정보"]}
+- 발행 예정: ${k.month}월 ${k.week}주차 (검색이 가장 많은 달: ${k.peak}월)
+- 수익 연결: ${k.monetize}
+- 운영자 경험 메모: ${memo}
+
+[출력 형식] 아래 형식 그대로, 다른 말 없이 씁니다.
+제목: (40자 이내, 키워드 포함)
+요약: (검색 결과에 보일 80~150자)
+태그: 태그1, 태그2, ... (5~10개)
+===본문===
+(마크다운 본문. 제목은 다시 쓰지 않음)
+===체크리스트===
+- (발행 전에 운영자가 확인하거나 채울 것. [확인 필요]·[경험 추가] 항목 요약 포함)`;
+}
+
+function parseOutput(text) {
+  const [head, rest = ""] = text.split("===본문===");
+  const [body = "", check = ""] = rest.split("===체크리스트===");
+  const field = name => (head.match(new RegExp("^\\s*" + name + "\\s*[:：]\\s*(.+)$", "m")) || [])[1]?.trim() || "";
+  return {
+    title: field("제목"),
+    meta: field("요약"),
+    tags: field("태그").split(/[,，]/).map(s => s.trim().replace(/^#/, "")).filter(Boolean),
+    body: body.trim(),
+    checklist: check.split("\n").map(s => s.replace(/^\s*[-*\d.)]+\s*/, "").trim()).filter(Boolean),
+    hasBody: rest.length > 0,
+  };
+}
+
+function finalizeBody(body, k) {
+  const parts = [];
+  if (String(k.monetize).startsWith("쿠팡")) parts.push("> " + COUPANG);
+  parts.push(body.trim());
+  const disc = TOPIC[k.topic]?.disclaimer;
+  if (disc) parts.push("---\n\n*" + disc + "*");
+  return parts.join("\n\n");
+}
+
+// ------------------------------------------------------------------ Claude 호출
+let samplePromise = null;
+const getSample = () => (samplePromise ??= (window.claude?.use ? claude.use("sample").catch(() => null) : Promise.resolve(null)));
+const ERR = {
+  not_granted: "Claude 사용을 허용하지 않아서 초안을 쓸 수 없어요. 페이지의 권한 메뉴에서 허용할 수 있어요.",
+  sampling_disabled: "이 계정에서는 Claude를 쓸 수 없어요.",
+  rate_limited: "요청이 많아 잠시 쉬어야 해요. 몇 분 뒤에 다시 눌러 주세요.",
+  session_expired: "claude.ai에 다시 로그인해 주세요.",
+  refused: "Claude가 이 내용으로는 쓰지 않았어요. 메모나 키워드를 바꿔 보세요.",
+  empty_completion: "답이 비어 있어요. 메모를 조금 줄여서 다시 해 보세요.",
+  prompt_too_large: "메모가 너무 길어요. 줄여서 다시 해 주세요.",
+};
+
+async function generate() {
+  if (!state.selected || state.generating) return;
+  // 방금 입력한 메모가 아직 저장 대기 중이면 먼저 반영
+  const memoEl = $("memo");
+  if (memoEl && memoEl.value !== (keyword(state.selected)?.memo || "")) {
+    clearTimeout(Store.timers[state.selected]);
+    await Store.saveKw(state.selected, { memo: memoEl.value });
+  }
+  const k = keyword(state.selected);
+  if (!k) return;
+  const sample = await getSample();
+  if (!sample) { note("이 화면에서는 Claude를 부를 수 없어요. claude.ai에서 이 페이지를 열어 주세요.", "warn"); return; }
+  state.generating = true; state.streamText = ""; state.editing = false;
+  state.ctl = new AbortController();
+  renderDesk();
+  try {
+    const res = await sample(buildPrompt(k, state.voice), {
+      signal: state.ctl.signal, modelTier: state.tier, cache: false,
+      onText: ({ text }) => { state.streamText = text; renderStream(); },
+    });
+    const p = parseOutput(res.text);
+    if (!p.body) throw { code: "format", text: res.text };
+    await Store.saveDraft(k.id, {
+      kwId: k.id, topic: k.topic, keyword: k.keyword,
+      title: p.title || k.title, meta: p.meta, tags: p.tags,
+      body: finalizeBody(p.body, k), checklist: p.checklist,
+      voice: state.voice, truncated: !!res.truncated,
+      createdAt: new Date().toISOString(),
+    });
+    if (k.status === "todo") await Store.saveKw(k.id, { status: "draft" });
+    note(res.truncated ? "글이 길어서 끝부분이 잘렸어요. 마무리를 직접 채우거나 메모를 줄여 다시 써 보세요." : "", "warn");
+  } catch (e) {
+    if (e?.code === "cancelled") note("멈췄어요. 다시 쓰려면 [초안 쓰기]를 눌러 주세요.", "info");
+    else if (e?.code === "format") note("답의 형식이 달라 저장하지 못했어요. 한 번 더 눌러 주세요.", "warn");
+    else note(ERR[e?.code] || "연결이 잠시 끊겼어요. 다시 눌러 주세요.", "warn");
+  } finally {
+    state.generating = false; state.ctl = null; state.streamText = "";
+    render();
+  }
+}
+
+// ------------------------------------------------------------------ 복사
+async function copyPost() {
+  const d = state.drafts[state.selected];
+  if (!d) return;
+  if (state.editing) { state.editing = false; renderDesk(true); }
+  const el = document.querySelector("#preview .post");
+  if (!el) return;
+  const html = el.innerHTML;
+  const plain = el.innerText;
+  try {
+    if (window.ClipboardItem && navigator.clipboard?.write) {
+      await navigator.clipboard.write([new ClipboardItem({
+        "text/html": new Blob([html], { type: "text/html" }),
+        "text/plain": new Blob([plain], { type: "text/plain" }),
+      })]);
+    } else { await navigator.clipboard.writeText(plain); }
+    $("copy-msg").textContent = "복사했어요. 네이버 블로그 글쓰기 화면에 붙여넣으세요.";
+  } catch {
+    const range = document.createRange(); range.selectNodeContents(el);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    let ok = false; try { ok = document.execCommand("copy"); } catch {}
+    $("copy-msg").textContent = ok ? "복사했어요. 네이버 블로그 글쓰기 화면에 붙여넣으세요." : "본문을 선택해 두었어요. Ctrl+C(⌘+C)로 복사하세요.";
+  }
+}
+async function copyText(text, msg) {
+  try { await navigator.clipboard.writeText(text); $("copy-msg").textContent = msg; }
+  catch { $("copy-msg").textContent = "복사하지 못했어요. 직접 고치기 화면에서 선택해 복사하세요."; }
+}
+
+// ------------------------------------------------------------------ 화면 그리기
+function renderStats() {
+  const ks = allKeywords();
+  const box = $("stats"); box.innerHTML = "";
+  for (const t of DATA.topics) {
+    const mine = ks.filter(k => k.topic === t.key);
+    const n = s => mine.filter(k => k.status === s).length;
+    const div = document.createElement("div"); div.className = "stat";
+    div.innerHTML = `<b>${esc(t.label)}</b><span>초안 ${n("draft")} · 발행 ${n("published")} / ${mine.length}</span>`;
+    box.append(div);
+  }
+}
+
+function renderFilters() {
+  const chips = $("topic-chips"); chips.innerHTML = "";
+  for (const [key, label] of [["all", "전체"], ...DATA.topics.map(t => [t.key, t.label])]) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = label;
+    b.setAttribute("aria-pressed", state.topic === key);
+    b.onclick = () => { state.topic = key; render(); };
+    chips.append(b);
+  }
+  const months = $("months"); months.innerHTML = "";
+  for (let i = 0; i < 12; i++) {
+    const m = ((NOW_MONTH - 1 + i) % 12) + 1;
+    const b = document.createElement("button"); b.type = "button"; b.textContent = m + "월";
+    if (m === NOW_MONTH) b.className = "now";
+    b.setAttribute("aria-pressed", state.month === m);
+    b.onclick = () => { state.month = m; render(); };
+    months.append(b);
+  }
+}
+
+function kwButton(k) {
+  const li = document.createElement("li");
+  const b = document.createElement("button"); b.type = "button"; b.className = "kw";
+  b.setAttribute("aria-current", state.selected === k.id);
+  b.innerHTML = `<span class="wk">${k.custom ? "직접" : k.week + "주"} <span class="prio-${k.priority}">${esc(k.priority)}</span></span>
+    <span class="t"><b>${esc(k.keyword)}</b><small>${esc(TOPIC[k.topic]?.label || "")} · ${esc(k.title)}</small></span>
+    <span class="pill ${k.status}">${STATUS_LABEL[k.status] || k.status}</span>`;
+  b.onclick = () => {
+    state.selected = k.id; state.editing = false; state.ownForm = false; note("");
+    render();
+    if (matchMedia("(max-width: 860px)").matches) $("desk-h").scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  li.append(b); return li;
+}
+
+function renderList() {
+  const list = $("kw-list"); list.innerHTML = "";
+  const inTopic = k => state.topic === "all" || k.topic === state.topic;
+  const ks = allKeywords().filter(inTopic);
+  const topicIdx = k => DATA.topics.findIndex(t => t.key === k.topic);
+  const rank = k => (monthOffset(k.month, NOW_MONTH) === 11 ? -1 : 0);
+  const order = (a, b) => rank(a) - rank(b) || a.week - b.week || a.priority.localeCompare(b.priority) || topicIdx(a) - topicIdx(b) || a.id.localeCompare(b.id);
+  const due = ks.filter(isDue).sort(order);
+  const groups = [];
+  if (state.month === NOW_MONTH && due.length) groups.push(["이번 주까지 쓸 글", due.slice(0, 6)]);
+  const custom = ks.filter(k => k.custom).sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
+  if (custom.length) groups.push(["직접 추가한 글", custom]);
+  groups.push([state.month + "월 키워드", ks.filter(k => !k.custom && k.month === state.month).sort(order)]);
+  let total = 0;
+  for (const [label, items] of groups) {
+    if (!items.length) continue;
+    const g = document.createElement("li"); g.className = "group-label"; g.textContent = label; list.append(g);
+    items.forEach(k => list.append(kwButton(k))); total += items.length;
+  }
+  $("cal-count").textContent = `${state.month}월 ${ks.filter(k => !k.custom && k.month === state.month).length}개`;
+}
+
+function previewHtml(draft) {
+  const center = (draft.voice || "kkomongmom") !== "grandpa";
+  return `<div class="post${center ? " center" : ""}"><h1>${esc(draft.title)}</h1>${mdToHtml(draft.body)}</div>`;
+}
+
+function renderStream() {
+  const box = $("preview"); if (!box) return;
+  const p = parseOutput(state.streamText);
+  const k = keyword(state.selected);
+  const title = p.title || k?.title || "";
+  const body = p.hasBody ? p.body : "";
+  box.innerHTML = `<div class="post${state.voice !== "grandpa" ? " center" : ""}"><h1>${esc(title)}</h1>${body ? mdToHtml(body) : "<p>제목과 요약을 쓰는 중…</p>"}<span class="stream-cursor" aria-hidden="true"></span></div>`;
+  $("gen-status").textContent = `쓰는 중… ${body.length.toLocaleString()}자`;
+}
+
+function renderOwnForm(desk) {
+  desk.innerHTML = `
+    <div class="kw-head"><h3>캘린더에 없는 글 쓰기</h3><p class="idea">주제와 키워드를 적으면 캘린더 글처럼 초안을 만들어요.</p></div>
+    <form class="own-form" id="own-form">
+      <div><label class="lbl" for="own-topic">주제</label><select id="own-topic">${DATA.topics.map(t => `<option value="${t.key}">${esc(t.name)}</option>`).join("")}</select></div>
+      <div><label class="lbl" for="own-kw">핵심 키워드</label><input id="own-kw" type="text" required placeholder="예: 조경 내역서 작성"></div>
+      <div><label class="lbl" for="own-title">제목 아이디어</label><input id="own-title" type="text" placeholder="예: 조경 내역서 작성 방법, 순서대로 알려드려요"></div>
+      <div class="row">
+        <div style="flex:1 1 140px"><label class="lbl" for="own-intent">검색 의도</label><select id="own-intent">${Object.keys(INTENT_GUIDE).map(x => `<option>${x}</option>`).join("")}</select></div>
+        <div style="flex:1 1 140px"><label class="lbl" for="own-money">수익 연결</label><input id="own-money" type="text" value="애드포스트"></div>
+      </div>
+      <div class="row"><button class="btn primary" type="submit">추가하고 쓰러 가기</button><button class="btn ghost" type="button" id="own-cancel">취소</button></div>
+    </form>`;
+  $("own-cancel").onclick = () => { state.ownForm = false; render(); };
+  $("own-form").onsubmit = async ev => {
+    ev.preventDefault();
+    const kwText = $("own-kw").value.trim(); if (!kwText) return;
+    const id = "C-" + Date.now().toString(36);
+    const custom = { topic: $("own-topic").value, month: NOW_MONTH, week: WOM, category: "직접 추가", keyword: kwText,
+      title: $("own-title").value.trim() || kwText, intent: $("own-intent").value, peak: NOW_MONTH, priority: "A",
+      monetize: $("own-money").value.trim() || "애드포스트", status: "todo", custom: true };
+    state.ownForm = false; state.selected = id;
+    await Store.saveKw(id, { status: "todo", custom });
+  };
+}
+
+// 입력 중인 메모·주소가 지워지지 않도록, 화면에 보이는 내용이 바뀔 때만 작업대를 다시 그림
+let deskSig = "";
+function renderDesk(force) {
+  const desk = $("desk");
+  const k = keyword(state.selected);
+  const d0 = k && state.drafts[k.id];
+  const sig = JSON.stringify([state.ownForm, state.selected, k?.status, k?.postUrl, d0?.updatedAt, state.generating, state.editing, state.voice, state.tier]);
+  if (!force && sig === deskSig) return;
+  deskSig = sig;
+  if (state.ownForm) return renderOwnForm(desk);
+  if (!k) {
+    desk.innerHTML = `<div class="empty"><b>왼쪽에서 쓸 키워드를 골라 주세요</b>"이번 주까지 쓸 글"부터 시작하면 검색 시즌에 맞춰 발행할 수 있어요.</div>`;
+    return;
+  }
+  const d = state.drafts[k.id];
+  const t = TOPIC[k.topic];
+  const c = d ? countPlaceholders(d.body) : null;
+  const left = c ? c["사진"] + c["경험 추가"] + c["확인 필요"] + c["제휴"] : 0;
+  desk.innerHTML = `
+    <div class="kw-head">
+      <h3>${esc(k.keyword)}</h3>
+      <p class="idea">${esc(k.title)}</p>
+      <div class="meta"><span>${esc(t?.label || "")}</span><span>${k.custom ? "직접 추가" : `${k.month}월 ${k.week}주 발행`}</span><span>검색 성수기 ${k.peak}월</span><span>${esc(k.intent)}</span><span>${esc(k.monetize)}</span><span class="pill ${k.status}">${STATUS_LABEL[k.status]}</span></div>
+    </div>
+    <div>
+      <label class="lbl" for="memo">경험 메모</label>
+      <textarea id="memo" placeholder="직접 겪은 일, 숫자, 사진 목록을 적어 주세요. 예) 작년 4월 25일 고추 심었다가 냉해, 사진 3장 있음 / 아빠 말: 지온 15도 넘을 때 심어야 함">${esc(k.memo)}</textarea>
+      <p class="hint">메모에 적은 내용만 경험으로 들어가요. 비워 두면 경험 자리는 표시만 남아요.</p>
+    </div>
+    <div class="row">
+      <div><span class="lbl">화자</span><div class="seg" role="group" aria-label="화자">
+        <button type="button" data-voice="kkomongmom" aria-pressed="${state.voice === "kkomongmom"}">꼬몽맘</button>
+        <button type="button" data-voice="grandpa" aria-pressed="${state.voice === "grandpa"}">꼬몽할배</button></div></div>
+      <div><span class="lbl">꼼꼼함</span><div class="seg" role="group" aria-label="꼼꼼함">
+        <button type="button" data-tier="default" aria-pressed="${state.tier === "default"}">보통</button>
+        <button type="button" data-tier="complex" aria-pressed="${state.tier === "complex"}">꼼꼼하게</button></div></div>
+      <div class="row" style="margin-left:auto">
+        ${state.generating
+          ? `<button class="btn" id="stop" type="button">멈추기</button>`
+          : `<button class="btn primary" id="gen" type="button">${d ? "초안 다시 쓰기" : "초안 쓰기"}</button>`}
+      </div>
+    </div>
+    <div class="status-line" id="gen-status">${state.generating ? "Claude가 생각하는 중… (처음 글자가 나오기까지 30초~1분 걸릴 수 있어요)" : d ? "" : "버튼을 누르면 꼬몽맘 문체로 초안을 써요. 처음 한 번은 Claude 사용 허락을 물어봐요."}</div>
+    ${d && !state.generating ? `
+      <div class="draft-bar">
+        <div class="counts">
+          ${left ? `<span class="c-photo">📷 사진 ${c["사진"]}</span><span class="c-exp">✍️ 경험 ${c["경험 추가"]}</span><span class="c-warn">⚠️ 확인 ${c["확인 필요"]}</span>${c["제휴"] ? `<span class="c-link">🔗 제휴 ${c["제휴"]}</span>` : ""}` : `<span class="c-ok">채울 자리 없음 · 발행 준비 끝</span>`}
+        </div>
+        <div class="row" style="margin-left:auto">
+          <button class="btn" id="edit" type="button">${state.editing ? "미리보기" : "직접 고치기"}</button>
+          <button class="btn naver" id="copy" type="button">본문 복사하기</button>
+        </div>
+      </div>
+      <div class="status-line" id="copy-msg"></div>
+      <div class="seo">
+        <div><b>요약</b>${esc(d.meta || "")}</div>
+        <div><b>태그</b>${(d.tags || []).map(x => "#" + esc(String(x).replace(/\s+/g, ""))).join(" ")}</div>
+        <div class="row"><button class="btn ghost" id="copy-tags" type="button">태그 복사</button><button class="btn ghost" id="copy-md" type="button">마크다운 복사</button></div>
+      </div>` : ""}
+    <div id="preview" class="phone">${state.generating ? "" : d ? (state.editing ? "" : previewHtml(d)) : `<div class="empty"><b>아직 초안이 없어요</b>메모를 적고 [초안 쓰기]를 눌러 주세요.</div>`}</div>
+    ${d && state.editing && !state.generating ? `
+      <div class="editor"><label class="lbl" for="edit-body">본문 (마크다운)</label><textarea id="edit-body">${esc(d.body)}</textarea>
+      <div class="row" style="margin-top:8px"><button class="btn primary" id="save-edit" type="button">고친 내용 저장</button><span class="hint">[사진: …] 같은 표시를 지우고 내용을 채운 뒤 저장하세요.</span></div></div>` : ""}
+    ${d && d.checklist?.length && !state.generating ? `<div><span class="lbl">발행 전 체크리스트</span><ul class="checklist">${d.checklist.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+    ${!state.generating ? `
+      <div>
+        <label class="lbl" for="post-url">발행했다면 글 주소</label>
+        <div class="publish-row">
+          <input id="post-url" type="url" placeholder="https://blog.naver.com/samil5240/..." value="${esc(k.postUrl)}">
+          <button class="btn" id="mark-pub" type="button">발행 완료로 표시</button>
+          ${k.status !== "skip" ? `<button class="btn ghost" id="mark-skip" type="button">이번엔 건너뛰기</button>` : `<button class="btn ghost" id="mark-todo" type="button">다시 예정으로</button>`}
+        </div>
+      </div>` : ""}`;
+
+  $("memo").oninput = e => Store.saveMemoSoon(k.id, e.target.value);
+  desk.querySelectorAll("[data-voice]").forEach(b => b.onclick = () => { state.voice = b.dataset.voice; renderDesk(); });
+  desk.querySelectorAll("[data-tier]").forEach(b => b.onclick = () => { state.tier = b.dataset.tier; renderDesk(); });
+  $("gen")?.addEventListener("click", generate);
+  $("stop")?.addEventListener("click", () => state.ctl?.abort());
+  $("copy")?.addEventListener("click", copyPost);
+  $("copy-tags")?.addEventListener("click", () => copyText((d.tags || []).map(x => "#" + String(x).replace(/\s+/g, "")).join(" "), "태그를 복사했어요."));
+  $("copy-md")?.addEventListener("click", () => copyText(`# ${d.title}\n\n${d.body}`, "마크다운을 복사했어요."));
+  $("edit")?.addEventListener("click", () => { state.editing = !state.editing; renderDesk(); });
+  $("save-edit")?.addEventListener("click", async () => { await Store.saveDraft(k.id, { ...d, body: $("edit-body").value }); state.editing = false; renderDesk(); });
+  $("mark-pub")?.addEventListener("click", () => Store.saveKw(k.id, { status: "published", postUrl: $("post-url").value.trim() }));
+  $("mark-skip")?.addEventListener("click", () => Store.saveKw(k.id, { status: "skip" }));
+  $("mark-todo")?.addEventListener("click", () => Store.saveKw(k.id, { status: state.drafts[k.id] ? "draft" : "todo" }));
+  if (state.generating && state.streamText) renderStream();
+}
+
+function render() {
+  renderStats(); renderFilters(); renderList();
+  if (!state.generating) renderDesk();
+  else if (!$("preview")) renderDesk();
+}
+
+$("add-own").onclick = () => { state.ownForm = true; state.selected = null; render(); if (matchMedia("(max-width: 860px)").matches) $("desk-h").scrollIntoView({ behavior: "smooth" }); };
+
+// 첫 화면: 이번 주에 쓸 첫 키워드를 골라 둠
+(() => {
+  const first = allKeywords().filter(isDue).sort((a, b) => (monthOffset(a.month, NOW_MONTH) === 11 ? -1 : 0) - (monthOffset(b.month, NOW_MONTH) === 11 ? -1 : 0) || a.week - b.week || a.priority.localeCompare(b.priority))[0];
+  state.selected = [...KW.values()].find(k => k.status === "draft")?.id || first?.id || null;
+})();
+Store.init();
+getSample().then(s => { if (!s) note("Claude 연결은 claude.ai에서 열었을 때만 돼요. 지금은 캘린더와 저장된 초안만 볼 수 있어요.", "info"); });
+</script>

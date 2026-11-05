@@ -30,6 +30,7 @@ lookahead_months = 1       # next 명령이 몇 달 앞 키워드까지 미리 �
 
 [topics.seedling]
 name = "육묘장 사장이 알려주는 모종·텃밭"
+label = "모종·텃밭"
 csv = "keywords/01_seedling_garden.csv"
 platform = "naver"
 max_per_day = 1
@@ -39,6 +40,7 @@ audience = "주말농장·베란다·옥상·마당 텃밭을 하는 40~60대 �
 
 [topics.landscaping]
 name = "마당·전원주택 조경 가이드"
+label = "조경"
 csv = "keywords/02_landscaping.csv"
 platform = "naver"
 max_per_day = 1
@@ -48,6 +50,7 @@ audience = "전원주택 건축주, 마당·옥상이 있는 집으로 이사한
 
 [topics.women_biz]
 name = "여성 대표의 관급공사·여성기업 실전기"
+label = "여성기업·관급"
 csv = "keywords/03_women_biz_public.csv"
 platform = "naver"
 max_per_day = 1
@@ -58,6 +61,7 @@ disclaimer = "이 글은 운영자의 경험과 일반 정보를 정리한 것�
 
 [topics.bmw]
 name = "BMW 오너의 실사용 관리 기록"
+label = "BMW"
 csv = "keywords/04_bmw.csv"
 platform = "naver"         # 워드프레스로 따로 운영하면 "wordpress"로 바꾸고 아래 주석 해제
 # wp_env_prefix = "WP_BMW"   # 환경변수 WP_BMW_URL, WP_BMW_USER, WP_BMW_APP_PASSWORD 사용

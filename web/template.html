@@ -1,0 +1,743 @@
+<title>꼬몽맘 글공방</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gaegu:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Nanum+Gothic:wght@400;700;800&display=swap">
+<style>
+/* 레이아웃: 왼쪽 키워드 캘린더 + 오른쪽 작업대(메모 → 초안 → 네이버 미리보기). 휴대폰에서는 위아래로 쌓임 */
+:root {
+  --bg: #f4f6f1;          /* 모종 트레이 옆 흰 벽 */
+  --panel: #ffffff;
+  --ink: #1d2a21;
+  --muted: #5f6d63;
+  --line: #dde3d8;
+  --leaf: #2f7a4c;        /* 모종 잎 */
+  --leaf-soft: #e3f0e6;
+  --soil: #7a5a3a;        /* 상토 */
+  --naver: #03c75a;
+  --warn: #b42318;  --warn-bg: #fdebe9;
+  --exp: #a8550a;   --exp-bg: #fff1e1;
+  --photo: #1f4fb8; --photo-bg: #e7efff;
+  --link: #0b7a52;  --link-bg: #e3f7ee;
+  --todo: #8a948d; --draft: #b7791f; --pub: #2f7a4c;
+  --font-brand: "Gaegu", "Nanum Gothic", sans-serif;
+  --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-post: "Nanum Gothic", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131915; --panel: #1b231e; --ink: #e6ede7; --muted: #9db0a2; --line: #2c3830;
+    --leaf: #6cc28f; --leaf-soft: #1f3327; --soil: #c9a27c; --naver: #2fd47a;
+    --warn: #ff9b8f; --warn-bg: #3a1f1c; --exp: #f5b46a; --exp-bg: #3a2a16;
+    --photo: #9dbcff; --photo-bg: #1c2840; --link: #6fe0b0; --link-bg: #173328;
+    --todo: #7d8a81; --draft: #e0a84a; --pub: #6cc28f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131915; --panel: #1b231e; --ink: #e6ede7; --muted: #9db0a2; --line: #2c3830;
+  --leaf: #6cc28f; --leaf-soft: #1f3327; --soil: #c9a27c; --naver: #2fd47a;
+  --warn: #ff9b8f; --warn-bg: #3a1f1c; --exp: #f5b46a; --exp-bg: #3a2a16;
+  --photo: #9dbcff; --photo-bg: #1c2840; --link: #6fe0b0; --link-bg: #173328;
+  --todo: #7d8a81; --draft: #e0a84a; --pub: #6cc28f;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--leaf); outline-offset: 2px; }
+
+/* 머리 */
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 18px; }
+.brand h1 { font-family: var(--font-brand); font-size: 34px; line-height: 1; margin: 0; color: var(--leaf); letter-spacing: 0.5px; }
+.brand p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px; font-size: 12px; min-width: 0; }
+.stat b { display: block; font-size: 13px; }
+.stat span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.note { font-size: 12.5px; color: var(--muted); background: var(--panel); border: 1px dashed var(--line); border-radius: var(--radius); padding: 8px 12px; margin-bottom: 14px; }
+.note[data-tone="warn"] { color: var(--warn); border-color: var(--warn); }
+
+/* 본문 2단 */
+.grid { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.panel-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.panel-h h2 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 0.3px; }
+
+/* 캘린더 */
+.filters { display: grid; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: transparent; border-radius: 99px; padding: 4px 10px; font-size: 12.5px; }
+.chip[aria-pressed="true"] { background: var(--leaf); border-color: var(--leaf); color: var(--panel); }
+.months { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px; }
+.months button { flex: 0 0 auto; border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 3px 8px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.months button[aria-pressed="true"] { border-color: var(--leaf); color: var(--leaf); font-weight: 600; }
+.months button.now::after { content: "•"; color: var(--naver); margin-left: 2px; }
+.list { list-style: none; margin: 0; padding: 6px; max-height: 70vh; overflow-y: auto; }
+@media (max-width: 860px) { .list { max-height: 50vh; } }
+.group-label { font-size: 11.5px; color: var(--muted); letter-spacing: 0.4px; padding: 8px 8px 4px; }
+.kw { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 8px; align-items: start; width: 100%; text-align: left; background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 8px; }
+.kw:hover { background: var(--leaf-soft); }
+.kw[aria-current="true"] { border-color: var(--leaf); background: var(--leaf-soft); }
+.kw .wk { font-size: 11px; color: var(--muted); padding-top: 2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kw .t { min-width: 0; }
+.kw .t b { display: block; font-size: 14px; font-weight: 600; }
+.kw .t small { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pill { font-size: 11px; border-radius: 99px; padding: 1px 7px; border: 1px solid currentColor; white-space: nowrap; }
+.pill.todo { color: var(--todo); } .pill.draft { color: var(--draft); } .pill.published { color: var(--pub); } .pill.skip { color: var(--todo); opacity: .6; }
+.prio-A { color: var(--soil); font-weight: 700; }
+.add-own { margin: 8px; width: calc(100% - 16px); border: 1px dashed var(--line); background: transparent; border-radius: 8px; padding: 8px; color: var(--leaf); font-weight: 600; }
+
+/* 작업대 */
+.desk { display: grid; gap: 14px; padding: 14px; }
+.kw-head .meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.kw-head .meta span { border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; }
+.kw-head h3 { margin: 0; font-size: 20px; text-wrap: balance; }
+.kw-head .idea { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
+label.lbl { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 4px; }
+.hint { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+textarea, input[type="text"], input[type="url"], select { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 8px 10px; }
+textarea { resize: vertical; min-height: 92px; line-height: 1.5; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.row > * { min-width: 0; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; font-size: 13px; }
+.seg button[aria-pressed="true"] { background: var(--leaf-soft); color: var(--leaf); font-weight: 600; }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 13.5px; }
+.btn.primary { background: var(--leaf); border-color: var(--leaf); color: var(--panel); }
+.btn.naver { background: var(--naver); border-color: var(--naver); color: #fff; }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn.ghost { background: transparent; }
+.status-line { font-size: 13px; color: var(--muted); min-height: 1.3em; }
+.status-line[data-tone="warn"] { color: var(--warn); }
+
+/* 초안 */
+.draft-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.counts { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+.counts span { border-radius: 6px; padding: 2px 8px; font-weight: 600; }
+.c-photo { background: var(--photo-bg); color: var(--photo); }
+.c-exp { background: var(--exp-bg); color: var(--exp); }
+.c-warn { background: var(--warn-bg); color: var(--warn); }
+.c-link { background: var(--link-bg); color: var(--link); }
+.c-ok { background: var(--leaf-soft); color: var(--leaf); }
+.seo { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13px; display: grid; gap: 4px; }
+.seo b { font-size: 12px; color: var(--muted); font-weight: 600; margin-right: 6px; }
+.checklist { margin: 0; padding-left: 18px; font-size: 13px; }
+
+/* 네이버 미리보기: 휴대폰 화면 폭 */
+.phone { background: var(--bg); border-radius: 14px; padding: 14px; }
+.post { background: #fff; color: #222; max-width: 460px; margin: 0 auto; border-radius: 10px; padding: 22px 18px 30px; font-family: var(--font-post); font-size: 15px; line-height: 1.85; box-shadow: 0 1px 2px rgba(0,0,0,.06); overflow-wrap: anywhere; }
+:root[data-theme="dark"] .post { box-shadow: none; }
+.post.center { text-align: center; }
+.post h1 { font-size: 21px; line-height: 1.4; margin: 0 0 18px; text-wrap: balance; }
+.post h2 { font-size: 18px; margin: 26px 0 10px; text-wrap: balance; }
+.post h3 { font-size: 16px; margin: 20px 0 8px; }
+.post p { margin: 0 0 14px; }
+.post ul, .post ol { margin: 0 0 14px; padding-left: 20px; }
+.post.center ul, .post.center ol { list-style-position: inside; padding-left: 0; }
+.post blockquote { margin: 0 0 14px; padding: 10px 14px; border-left: 3px solid #c9d6cc; background: #f5f8f5; color: #444; }
+.post.center blockquote { border-left: 0; border-top: 2px solid #c9d6cc; border-bottom: 2px solid #c9d6cc; }
+.post .tbl { overflow-x: auto; margin: 0 0 14px; }
+.post table { border-collapse: collapse; margin: 0 auto; font-size: 13.5px; line-height: 1.5; }
+.post th, .post td { border: 1px solid #ddd; padding: 6px 9px; }
+.post th { background: #f3f5f2; }
+.post a { color: #0b6bcb; }
+.post hr { border: 0; border-top: 1px solid #e3e3e3; margin: 18px 0; }
+.post .ph { display: inline; border-radius: 4px; padding: 1px 5px; font-weight: 700; }
+.post .ph-사진 { background: #e7efff; color: #1d4ed8; }
+.post .ph-경험 { background: #fff1e1; color: #a8550a; }
+.post .ph-확인 { background: #fdebe9; color: #b42318; }
+.post .ph-제휴 { background: #e3f7ee; color: #047857; }
+.post .stream-cursor { display: inline-block; width: 8px; height: 1em; background: #2f7a4c; vertical-align: text-bottom; animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .post .stream-cursor { animation: none; } }
+.empty { text-align: center; color: var(--muted); padding: 28px 12px; font-size: 13.5px; }
+.empty b { display: block; color: var(--ink); font-size: 15px; margin-bottom: 4px; }
+.editor textarea { min-height: 360px; font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 13px; }
+.publish-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.publish-row input { flex: 1 1 220px; }
+.own-form { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; gap: 10px; background: var(--bg); }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>꼬몽맘 글공방</h1>
+      <p>키워드 고르기 → 경험 메모 → Claude 초안 → 네이버에 붙여넣기</p>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+  <div class="note" id="note" hidden></div>
+
+  <main class="grid">
+    <section class="panel" aria-labelledby="cal-h">
+      <div class="panel-h"><h2 id="cal-h">키워드 캘린더</h2><span class="hint" id="cal-count"></span></div>
+      <div class="filters">
+        <div class="chips" id="topic-chips" role="group" aria-label="주제"></div>
+        <div class="months" id="months" role="group" aria-label="발행 달"></div>
+      </div>
+      <ul class="list" id="kw-list"></ul>
+      <button class="add-own" id="add-own" type="button">+ 캘린더에 없는 글 직접 쓰기</button>
+    </section>
+
+    <section class="panel" aria-labelledby="desk-h">
+      <div class="panel-h"><h2 id="desk-h">작업대</h2><span class="hint" id="save-state"></span></div>
+      <div class="desk" id="desk"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+
+// ------------------------------------------------------------------ 기본 값
+const TOPIC = Object.fromEntries(DATA.topics.map(t => [t.key, t]));
+const KW = new Map(DATA.keywords.map(r => {
+  const [id, topic, month, week, category, keyword, title, intent, peak, priority, monetize, status] = r;
+  return [id, { id, topic, month, week, category, keyword, title, intent, peak, priority, monetize, status, builtin: true }];
+}));
+const STATUS_LABEL = { todo: "예정", draft: "초안", published: "발행", skip: "건너뜀" };
+const INTENT_GUIDE = {
+  "정보": "검색한 사람이 바로 따라 할 수 있게 시기·방법·순서를 구체적으로 정리한다.",
+  "문제해결": "증상 → 원인 → 지금 할 수 있는 대처 → 예방 순서로 쓴다.",
+  "비교": "첫머리에 비교표를 두고, 어떤 사람에게 어느 쪽이 맞는지 결론을 분명히 낸다.",
+  "구매": "고르는 기준과 사기 전 체크리스트를 중심으로 쓰고, 특정 상품을 과장해 추천하지 않는다.",
+  "비용": "비용을 좌우하는 요소를 나눠 설명하고, 금액은 범위로만 쓰되 확실하지 않으면 확인 필요로 표시한다.",
+  "경험": "운영자의 경험 메모를 중심으로 이야기처럼 쓰고, 독자가 가져갈 교훈으로 마무리한다.",
+};
+const COUPANG = "이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.";
+const today = new Date();
+const NOW_MONTH = today.getMonth() + 1;
+const WOM = Math.min(4, Math.floor((today.getDate() - 1) / 7) + 1);
+
+const state = {
+  topic: "all", month: NOW_MONTH, selected: null,
+  kw: {},        // id -> {status, memo, postUrl, custom}
+  drafts: {},    // id -> draft
+  voice: "kkomongmom", tier: "default",
+  generating: false, ctl: null, streamText: "", editing: false, ownForm: false,
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const lsGet = k => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+function keyword(id) {
+  const base = KW.get(id) || state.kw[id]?.custom;
+  if (!base) return null;
+  const s = state.kw[id] || {};
+  return { ...base, id, status: s.status || base.status || "todo", memo: s.memo || "", postUrl: s.postUrl || "", updatedAt: s.updatedAt || "" };
+}
+function allKeywords() {
+  const ids = new Set([...KW.keys(), ...Object.keys(state.kw).filter(id => state.kw[id]?.custom)]);
+  return [...ids].map(keyword).filter(Boolean);
+}
+const monthOffset = (m, now) => ((m - now) % 12 + 12) % 12;
+function isDue(k) {
+  if (k.status !== "todo") return false;
+  const off = monthOffset(k.month, NOW_MONTH);
+  return (off === 11 && monthOffset(k.peak, NOW_MONTH) <= 2) || (off === 0 && k.week <= WOM);
+}
+
+// ------------------------------------------------------------------ 저장소 (db 또는 이 기기)
+const Store = {
+  mode: "local", db: null, timers: {},
+  async init() {
+    const local = lsGet("glgongbang") || {};
+    state.kw = local.kw || {}; state.drafts = local.drafts || {};
+    render();
+    let db = null, user = null;
+    try { [db, user] = await Promise.all([claude.use("db"), claude.use("user")]); } catch {}
+    const canEdit = user ? await user.canEdit().catch(() => null) : null;
+    if (!db || canEdit === false) {
+      note(db ? "보기 권한으로 열려 있어요. 메모와 초안은 이 기기에만 저장됩니다." : "", "info");
+      return;
+    }
+    this.db = db; this.mode = "db";
+    $("save-state").textContent = "불러오는 중…";
+    const slow = setTimeout(() => { $("save-state").textContent = "저장소 응답이 늦어요"; }, 10000);
+    db.collection("kw").onSnapshot(snap => {
+      clearTimeout(slow);
+      const next = {};
+      snap.docs.forEach(d => { next[d.id] = d.data(); });
+      state.kw = next; $("save-state").textContent = "저장됨 · 모든 기기에서 같이 보여요";
+      render();
+    }, () => { clearTimeout(slow); this.fallback(); });
+    db.collection("drafts").onSnapshot(snap => {
+      const next = {};
+      snap.docs.forEach(d => { next[d.id] = d.data(); });
+      state.drafts = next;
+      if (!state.selected) {
+        const latest = Object.values(next).sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""))[0];
+        if (latest) state.selected = latest.kwId;
+      }
+      render();
+    }, () => this.fallback());
+  },
+  fallback() {
+    if (this.mode !== "db") return;
+    this.mode = "local"; this.db = null;
+    note("공유 저장소에 연결하지 못했어요. 지금부터는 이 기기에만 저장됩니다.", "warn");
+  },
+  persistLocal() { if (this.mode === "local") lsSet("glgongbang", { kw: state.kw, drafts: state.drafts }); },
+  async saveKw(id, patch) {
+    state.kw[id] = { ...(state.kw[id] || {}), ...patch, updatedAt: new Date().toISOString() };
+    this.persistLocal(); render();
+    if (this.mode === "db") {
+      try { await this.db.doc("kw/" + id).set({ ...state.kw[id] }); $("save-state").textContent = "저장됨 · 모든 기기에서 같이 보여요"; }
+      catch (e) { note("저장하지 못했어요 (" + (e?.code || "오류") + "). 잠시 후 다시 해 주세요.", "warn"); }
+    } else { $("save-state").textContent = "이 기기에 저장됨"; }
+  },
+  saveMemoSoon(id, memo) {
+    clearTimeout(this.timers[id]);
+    $("save-state").textContent = "메모 입력 중…";
+    this.timers[id] = setTimeout(() => this.saveKw(id, { memo }), 900);
+  },
+  async saveDraft(id, draft) {
+    state.drafts[id] = { ...draft, updatedAt: new Date().toISOString() };
+    this.persistLocal(); render();
+    if (this.mode === "db") {
+      try { await this.db.doc("drafts/" + id).set({ ...state.drafts[id] }); }
+      catch (e) { note("초안을 저장하지 못했어요 (" + (e?.code || "오류") + "). 본문을 복사해 두세요.", "warn"); }
+    }
+  },
+};
+
+function note(text, tone) {
+  const n = $("note");
+  n.hidden = !text; n.textContent = text || ""; n.dataset.tone = tone || "info";
+}
+
+// ------------------------------------------------------------------ 마크다운 → 네이버 미리보기 HTML
+const PH = /\[(사진|경험 추가|확인 필요|제휴):\s*([^\]]+)\]/g;
+const PH_ICON = { "사진": "📷", "경험 추가": "✍️", "확인 필요": "⚠️", "제휴": "🔗" };
+function inline(s) {
+  let t = esc(s);
+  t = t.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (m, label, url) => `<a href="${url}" target="_blank" rel="noopener">${label}</a>`);
+  t = t.replace(/\*\*([\s\S]+?)\*\*/g, "<strong>$1</strong>");
+  t = t.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>");
+  t = t.replace(PH, (m, kind, body) => `<span class="ph ph-${kind.slice(0, 2)}">${PH_ICON[kind]} ${kind}: ${body}</span>`);
+  return t;
+}
+function mdToHtml(md) {
+  const lines = String(md).replace(/\r/g, "").split("\n");
+  const out = []; let i = 0;
+  const isTableSep = l => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l);
+  const cells = l => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
+  while (i < lines.length) {
+    const l = lines[i];
+    if (!l.trim()) { i++; continue; }
+    let m;
+    if ((m = l.match(/^(#{1,3})\s+(.*)$/))) { const n = Math.max(2, m[1].length); out.push(`<h${n}>${inline(m[2])}</h${n}>`); i++; continue; }
+    if (/^\s*(-{3,}|\*{3,})\s*$/.test(l)) { out.push("<hr>"); i++; continue; }
+    if (l.includes("|") && i + 1 < lines.length && isTableSep(lines[i + 1])) {
+      const head = cells(l); i += 2; const rows = [];
+      while (i < lines.length && lines[i].includes("|") && lines[i].trim()) { rows.push(cells(lines[i])); i++; }
+      out.push(`<div class="tbl"><table><thead><tr>${head.map(c => `<th>${inline(c)}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${inline(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`);
+      continue;
+    }
+    if (/^>\s?/.test(l)) {
+      const buf = [];
+      while (i < lines.length && /^>\s?/.test(lines[i])) { buf.push(lines[i].replace(/^>\s?/, "")); i++; }
+      out.push(`<blockquote>${inline(buf.join("\n")).replace(/\n/g, "<br>")}</blockquote>`); continue;
+    }
+    if (/^\s*[-*]\s+/.test(l)) {
+      const buf = [];
+      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) { buf.push(lines[i].replace(/^\s*[-*]\s+/, "")); i++; }
+      out.push(`<ul>${buf.map(x => `<li>${inline(x)}</li>`).join("")}</ul>`); continue;
+    }
+    if (/^\s*\d+[.)]\s+/.test(l)) {
+      const buf = [];
+      while (i < lines.length && /^\s*\d+[.)]\s+/.test(lines[i])) { buf.push(lines[i].replace(/^\s*\d+[.)]\s+/, "")); i++; }
+      out.push(`<ol>${buf.map(x => `<li>${inline(x)}</li>`).join("")}</ol>`); continue;
+    }
+    const buf = [];
+    while (i < lines.length && lines[i].trim() && !/^(#{1,3}\s|>|\s*[-*]\s+|\s*\d+[.)]\s+)/.test(lines[i])
+           && !(lines[i].includes("|") && i + 1 < lines.length && isTableSep(lines[i + 1]))) { buf.push(lines[i]); i++; }
+    out.push(`<p>${inline(buf.join("\n")).replace(/\n/g, "<br>")}</p>`);
+  }
+  return out.join("\n");
+}
+function countPlaceholders(md) {
+  const c = { "사진": 0, "경험 추가": 0, "확인 필요": 0, "제휴": 0 };
+  for (const m of String(md).matchAll(PH)) c[m[1]]++;
+  return c;
+}
+
+// ------------------------------------------------------------------ 프롬프트
+function buildPrompt(k, voiceKey) {
+  const t = TOPIC[k.topic];
+  const grandpa = voiceKey === "grandpa";
+  const voiceText = DATA.voices[voiceKey];
+  const greeting = grandpa ? "안녕하세요, 꼬몽할배입니다." : DATA.greeting;
+  const memo = (k.memo || "").trim() || "(없음: 경험이 필요한 자리는 [경험 추가] 표시로 남겨 주세요)";
+  return `당신은 아래 운영자를 대신해 네이버 블로그 글 초안을 쓰는 작가입니다. 운영자가 초안을 검토하고 사진과 경험을 더해 발행합니다.
+
+[운영자] ${t.persona}${grandpa ? "\n이번 글은 운영자의 아빠 꼬몽할배가 화자입니다." : ""}
+[블로그 주제] ${t.name}
+[주요 독자] ${t.audience}
+
+글쓰기 원칙
+- 화자의 1인칭 목소리로, 친근하지만 정확하게 씁니다.
+- 본문 첫 줄은 "${greeting}"로 시작합니다.
+- 첫 문단에서 검색한 사람이 가장 궁금해할 답을 먼저 줍니다.
+- 소제목(##) 3~6개, 필요하면 번호 목록과 표를 씁니다. 표는 휴대폰에서 보이도록 4칸 이하로 만듭니다.
+- 본문 분량은 공백 포함 1,500~2,500자입니다.
+- 키워드는 제목, 첫 문단, 소제목 1~2곳에 자연스럽게 넣고 억지로 반복하지 않습니다.
+- 끝에 '자주 묻는 질문' 소제목과 질문 2~3개, 짧은 마무리 문단을 둡니다.
+
+지어내지 말 것 (가장 중요, 문체 가이드보다 우선)
+- 경험 메모에 없는 구체적 경험(날짜, 수량, 매출, 사건, 가족·고객 이야기)을 만들어내지 않습니다. 경험이 들어가면 좋은 자리에는 [경험 추가: 무엇을 쓰면 좋은지]라고 표시합니다.
+- 가격, 비율, 법령, 제도 요건, 한도, 신고 기한, 차량 사양처럼 바뀌거나 틀리기 쉬운 사실은 확실하지 않으면 단정하지 말고 [확인 필요: 무엇을 확인할지]라고 표시합니다.
+- 사진이 들어가면 좋은 자리에 [사진: 찍을 장면] 표시를 6~10개 넣습니다.
+- 제휴 상품을 소개하기 좋은 자리가 있으면 [제휴: 상품 종류] 표시를 1~2개 넣습니다. 상품명이나 링크는 쓰지 않습니다.
+- 본문에 광고 고지, 면책 문구는 넣지 않습니다. 필요한 문구는 프로그램이 따로 붙입니다.
+
+[문체 가이드]
+${voiceText}
+
+[이번 글]
+- 핵심 키워드: ${k.keyword}
+- 제목 아이디어: ${k.title}
+- 분류: ${k.category}
+- 검색 의도: ${k.intent} → ${INTENT_GUIDE[k.intent] || INTENT_GUIDE["정보"]}
+- 발행 예정: ${k.month}월 ${k.week}주차 (검색이 가장 많은 달: ${k.peak}월)
+- 수익 연결: ${k.monetize}
+- 운영자 경험 메모: ${memo}
+
+[출력 형식] 아래 형식 그대로, 다른 말 없이 씁니다.
+제목: (40자 이내, 키워드 포함)
+요약: (검색 결과에 보일 80~150자)
+태그: 태그1, 태그2, ... (5~10개)
+===본문===
+(마크다운 본문. 제목은 다시 쓰지 않음)
+===체크리스트===
+- (발행 전에 운영자가 확인하거나 채울 것. [확인 필요]·[경험 추가] 항목 요약 포함)`;
+}
+
+function parseOutput(text) {
+  const [head, rest = ""] = text.split("===본문===");
+  const [body = "", check = ""] = rest.split("===체크리스트===");
+  const field = name => (head.match(new RegExp("^\\s*" + name + "\\s*[:：]\\s*(.+)$", "m")) || [])[1]?.trim() || "";
+  return {
+    title: field("제목"),
+    meta: field("요약"),
+    tags: field("태그").split(/[,，]/).map(s => s.trim().replace(/^#/, "")).filter(Boolean),
+    body: body.trim(),
+    checklist: check.split("\n").map(s => s.replace(/^\s*[-*\d.)]+\s*/, "").trim()).filter(Boolean),
+    hasBody: rest.length > 0,
+  };
+}
+
+function finalizeBody(body, k) {
+  const parts = [];
+  if (String(k.monetize).startsWith("쿠팡")) parts.push("> " + COUPANG);
+  parts.push(body.trim());
+  const disc = TOPIC[k.topic]?.disclaimer;
+  if (disc) parts.push("---\n\n*" + disc + "*");
+  return parts.join("\n\n");
+}
+
+// ------------------------------------------------------------------ Claude 호출
+let samplePromise = null;
+const getSample = () => (samplePromise ??= (window.claude?.use ? claude.use("sample").catch(() => null) : Promise.resolve(null)));
+const ERR = {
+  not_granted: "Claude 사용을 허용하지 않아서 초안을 쓸 수 없어요. 페이지의 권한 메뉴에서 허용할 수 있어요.",
+  sampling_disabled: "이 계정에서는 Claude를 쓸 수 없어요.",
+  rate_limited: "요청이 많아 잠시 쉬어야 해요. 몇 분 뒤에 다시 눌러 주세요.",
+  session_expired: "claude.ai에 다시 로그인해 주세요.",
+  refused: "Claude가 이 내용으로는 쓰지 않았어요. 메모나 키워드를 바꿔 보세요.",
+  empty_completion: "답이 비어 있어요. 메모를 조금 줄여서 다시 해 보세요.",
+  prompt_too_large: "메모가 너무 길어요. 줄여서 다시 해 주세요.",
+};
+
+async function generate() {
+  if (!state.selected || state.generating) return;
+  // 방금 입력한 메모가 아직 저장 대기 중이면 먼저 반영
+  const memoEl = $("memo");
+  if (memoEl && memoEl.value !== (keyword(state.selected)?.memo || "")) {
+    clearTimeout(Store.timers[state.selected]);
+    await Store.saveKw(state.selected, { memo: memoEl.value });
+  }
+  const k = keyword(state.selected);
+  if (!k) return;
+  const sample = await getSample();
+  if (!sample) { note("이 화면에서는 Claude를 부를 수 없어요. claude.ai에서 이 페이지를 열어 주세요.", "warn"); return; }
+  state.generating = true; state.streamText = ""; state.editing = false;
+  state.ctl = new AbortController();
+  renderDesk();
+  try {
+    const res = await sample(buildPrompt(k, state.voice), {
+      signal: state.ctl.signal, modelTier: state.tier, cache: false,
+      onText: ({ text }) => { state.streamText = text; renderStream(); },
+    });
+    const p = parseOutput(res.text);
+    if (!p.body) throw { code: "format", text: res.text };
+    await Store.saveDraft(k.id, {
+      kwId: k.id, topic: k.topic, keyword: k.keyword,
+      title: p.title || k.title, meta: p.meta, tags: p.tags,
+      body: finalizeBody(p.body, k), checklist: p.checklist,
+      voice: state.voice, truncated: !!res.truncated,
+      createdAt: new Date().toISOString(),
+    });
+    if (k.status === "todo") await Store.saveKw(k.id, { status: "draft" });
+    note(res.truncated ? "글이 길어서 끝부분이 잘렸어요. 마무리를 직접 채우거나 메모를 줄여 다시 써 보세요." : "", "warn");
+  } catch (e) {
+    if (e?.code === "cancelled") note("멈췄어요. 다시 쓰려면 [초안 쓰기]를 눌러 주세요.", "info");
+    else if (e?.code === "format") note("답의 형식이 달라 저장하지 못했어요. 한 번 더 눌러 주세요.", "warn");
+    else note(ERR[e?.code] || "연결이 잠시 끊겼어요. 다시 눌러 주세요.", "warn");
+  } finally {
+    state.generating = false; state.ctl = null; state.streamText = "";
+    render();
+  }
+}
+
+// ------------------------------------------------------------------ 복사
+async function copyPost() {
+  const d = state.drafts[state.selected];
+  if (!d) return;
+  if (state.editing) { state.editing = false; renderDesk(true); }
+  const el = document.querySelector("#preview .post");
+  if (!el) return;
+  const html = el.innerHTML;
+  const plain = el.innerText;
+  try {
+    if (window.ClipboardItem && navigator.clipboard?.write) {
+      await navigator.clipboard.write([new ClipboardItem({
+        "text/html": new Blob([html], { type: "text/html" }),
+        "text/plain": new Blob([plain], { type: "text/plain" }),
+      })]);
+    } else { await navigator.clipboard.writeText(plain); }
+    $("copy-msg").textContent = "복사했어요. 네이버 블로그 글쓰기 화면에 붙여넣으세요.";
+  } catch {
+    const range = document.createRange(); range.selectNodeContents(el);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    let ok = false; try { ok = document.execCommand("copy"); } catch {}
+    $("copy-msg").textContent = ok ? "복사했어요. 네이버 블로그 글쓰기 화면에 붙여넣으세요." : "본문을 선택해 두었어요. Ctrl+C(⌘+C)로 복사하세요.";
+  }
+}
+async function copyText(text, msg) {
+  try { await navigator.clipboard.writeText(text); $("copy-msg").textContent = msg; }
+  catch { $("copy-msg").textContent = "복사하지 못했어요. 직접 고치기 화면에서 선택해 복사하세요."; }
+}
+
+// ------------------------------------------------------------------ 화면 그리기
+function renderStats() {
+  const ks = allKeywords();
+  const box = $("stats"); box.innerHTML = "";
+  for (const t of DATA.topics) {
+    const mine = ks.filter(k => k.topic === t.key);
+    const n = s => mine.filter(k => k.status === s).length;
+    const div = document.createElement("div"); div.className = "stat";
+    div.innerHTML = `<b>${esc(t.label)}</b><span>초안 ${n("draft")} · 발행 ${n("published")} / ${mine.length}</span>`;
+    box.append(div);
+  }
+}
+
+function renderFilters() {
+  const chips = $("topic-chips"); chips.innerHTML = "";
+  for (const [key, label] of [["all", "전체"], ...DATA.topics.map(t => [t.key, t.label])]) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = label;
+    b.setAttribute("aria-pressed", state.topic === key);
+    b.onclick = () => { state.topic = key; render(); };
+    chips.append(b);
+  }
+  const months = $("months"); months.innerHTML = "";
+  for (let i = 0; i < 12; i++) {
+    const m = ((NOW_MONTH - 1 + i) % 12) + 1;
+    const b = document.createElement("button"); b.type = "button"; b.textContent = m + "월";
+    if (m === NOW_MONTH) b.className = "now";
+    b.setAttribute("aria-pressed", state.month === m);
+    b.onclick = () => { state.month = m; render(); };
+    months.append(b);
+  }
+}
+
+function kwButton(k) {
+  const li = document.createElement("li");
+  const b = document.createElement("button"); b.type = "button"; b.className = "kw";
+  b.setAttribute("aria-current", state.selected === k.id);
+  b.innerHTML = `<span class="wk">${k.custom ? "직접" : k.week + "주"} <span class="prio-${k.priority}">${esc(k.priority)}</span></span>
+    <span class="t"><b>${esc(k.keyword)}</b><small>${esc(TOPIC[k.topic]?.label || "")} · ${esc(k.title)}</small></span>
+    <span class="pill ${k.status}">${STATUS_LABEL[k.status] || k.status}</span>`;
+  b.onclick = () => {
+    state.selected = k.id; state.editing = false; state.ownForm = false; note("");
+    render();
+    if (matchMedia("(max-width: 860px)").matches) $("desk-h").scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  li.append(b); return li;
+}
+
+function renderList() {
+  const list = $("kw-list"); list.innerHTML = "";
+  const inTopic = k => state.topic === "all" || k.topic === state.topic;
+  const ks = allKeywords().filter(inTopic);
+  const topicIdx = k => DATA.topics.findIndex(t => t.key === k.topic);
+  const rank = k => (monthOffset(k.month, NOW_MONTH) === 11 ? -1 : 0);
+  const order = (a, b) => rank(a) - rank(b) || a.week - b.week || a.priority.localeCompare(b.priority) || topicIdx(a) - topicIdx(b) || a.id.localeCompare(b.id);
+  const due = ks.filter(isDue).sort(order);
+  const groups = [];
+  if (state.month === NOW_MONTH && due.length) groups.push(["이번 주까지 쓸 글", due.slice(0, 6)]);
+  const custom = ks.filter(k => k.custom).sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
+  if (custom.length) groups.push(["직접 추가한 글", custom]);
+  groups.push([state.month + "월 키워드", ks.filter(k => !k.custom && k.month === state.month).sort(order)]);
+  let total = 0;
+  for (const [label, items] of groups) {
+    if (!items.length) continue;
+    const g = document.createElement("li"); g.className = "group-label"; g.textContent = label; list.append(g);
+    items.forEach(k => list.append(kwButton(k))); total += items.length;
+  }
+  $("cal-count").textContent = `${state.month}월 ${ks.filter(k => !k.custom && k.month === state.month).length}개`;
+}
+
+function previewHtml(draft) {
+  const center = (draft.voice || "kkomongmom") !== "grandpa";
+  return `<div class="post${center ? " center" : ""}"><h1>${esc(draft.title)}</h1>${mdToHtml(draft.body)}</div>`;
+}
+
+function renderStream() {
+  const box = $("preview"); if (!box) return;
+  const p = parseOutput(state.streamText);
+  const k = keyword(state.selected);
+  const title = p.title || k?.title || "";
+  const body = p.hasBody ? p.body : "";
+  box.innerHTML = `<div class="post${state.voice !== "grandpa" ? " center" : ""}"><h1>${esc(title)}</h1>${body ? mdToHtml(body) : "<p>제목과 요약을 쓰는 중…</p>"}<span class="stream-cursor" aria-hidden="true"></span></div>`;
+  $("gen-status").textContent = `쓰는 중… ${body.length.toLocaleString()}자`;
+}
+
+function renderOwnForm(desk) {
+  desk.innerHTML = `
+    <div class="kw-head"><h3>캘린더에 없는 글 쓰기</h3><p class="idea">주제와 키워드를 적으면 캘린더 글처럼 초안을 만들어요.</p></div>
+    <form class="own-form" id="own-form">
+      <div><label class="lbl" for="own-topic">주제</label><select id="own-topic">${DATA.topics.map(t => `<option value="${t.key}">${esc(t.name)}</option>`).join("")}</select></div>
+      <div><label class="lbl" for="own-kw">핵심 키워드</label><input id="own-kw" type="text" required placeholder="예: 조경 내역서 작성"></div>
+      <div><label class="lbl" for="own-title">제목 아이디어</label><input id="own-title" type="text" placeholder="예: 조경 내역서 작성 방법, 순서대로 알려드려요"></div>
+      <div class="row">
+        <div style="flex:1 1 140px"><label class="lbl" for="own-intent">검색 의도</label><select id="own-intent">${Object.keys(INTENT_GUIDE).map(x => `<option>${x}</option>`).join("")}</select></div>
+        <div style="flex:1 1 140px"><label class="lbl" for="own-money">수익 연결</label><input id="own-money" type="text" value="애드포스트"></div>
+      </div>
+      <div class="row"><button class="btn primary" type="submit">추가하고 쓰러 가기</button><button class="btn ghost" type="button" id="own-cancel">취소</button></div>
+    </form>`;
+  $("own-cancel").onclick = () => { state.ownForm = false; render(); };
+  $("own-form").onsubmit = async ev => {
+    ev.preventDefault();
+    const kwText = $("own-kw").value.trim(); if (!kwText) return;
+    const id = "C-" + Date.now().toString(36);
+    const custom = { topic: $("own-topic").value, month: NOW_MONTH, week: WOM, category: "직접 추가", keyword: kwText,
+      title: $("own-title").value.trim() || kwText, intent: $("own-intent").value, peak: NOW_MONTH, priority: "A",
+      monetize: $("own-money").value.trim() || "애드포스트", status: "todo", custom: true };
+    state.ownForm = false; state.selected = id;
+    await Store.saveKw(id, { status: "todo", custom });
+  };
+}
+
+// 입력 중인 메모·주소가 지워지지 않도록, 화면에 보이는 내용이 바뀔 때만 작업대를 다시 그림
+let deskSig = "";
+function renderDesk(force) {
+  const desk = $("desk");
+  const k = keyword(state.selected);
+  const d0 = k && state.drafts[k.id];
+  const sig = JSON.stringify([state.ownForm, state.selected, k?.status, k?.postUrl, d0?.updatedAt, state.generating, state.editing, state.voice, state.tier]);
+  if (!force && sig === deskSig) return;
+  deskSig = sig;
+  if (state.ownForm) return renderOwnForm(desk);
+  if (!k) {
+    desk.innerHTML = `<div class="empty"><b>왼쪽에서 쓸 키워드를 골라 주세요</b>"이번 주까지 쓸 글"부터 시작하면 검색 시즌에 맞춰 발행할 수 있어요.</div>`;
+    return;
+  }
+  const d = state.drafts[k.id];
+  const t = TOPIC[k.topic];
+  const c = d ? countPlaceholders(d.body) : null;
+  const left = c ? c["사진"] + c["경험 추가"] + c["확인 필요"] + c["제휴"] : 0;
+  desk.innerHTML = `
+    <div class="kw-head">
+      <h3>${esc(k.keyword)}</h3>
+      <p class="idea">${esc(k.title)}</p>
+      <div class="meta"><span>${esc(t?.label || "")}</span><span>${k.custom ? "직접 추가" : `${k.month}월 ${k.week}주 발행`}</span><span>검색 성수기 ${k.peak}월</span><span>${esc(k.intent)}</span><span>${esc(k.monetize)}</span><span class="pill ${k.status}">${STATUS_LABEL[k.status]}</span></div>
+    </div>
+    <div>
+      <label class="lbl" for="memo">경험 메모</label>
+      <textarea id="memo" placeholder="직접 겪은 일, 숫자, 사진 목록을 적어 주세요. 예) 작년 4월 25일 고추 심었다가 냉해, 사진 3장 있음 / 아빠 말: 지온 15도 넘을 때 심어야 함">${esc(k.memo)}</textarea>
+      <p class="hint">메모에 적은 내용만 경험으로 들어가요. 비워 두면 경험 자리는 표시만 남아요.</p>
+    </div>
+    <div class="row">
+      <div><span class="lbl">화자</span><div class="seg" role="group" aria-label="화자">
+        <button type="button" data-voice="kkomongmom" aria-pressed="${state.voice === "kkomongmom"}">꼬몽맘</button>
+        <button type="button" data-voice="grandpa" aria-pressed="${state.voice === "grandpa"}">꼬몽할배</button></div></div>
+      <div><span class="lbl">꼼꼼함</span><div class="seg" role="group" aria-label="꼼꼼함">
+        <button type="button" data-tier="default" aria-pressed="${state.tier === "default"}">보통</button>
+        <button type="button" data-tier="complex" aria-pressed="${state.tier === "complex"}">꼼꼼하게</button></div></div>
+      <div class="row" style="margin-left:auto">
+        ${state.generating
+          ? `<button class="btn" id="stop" type="button">멈추기</button>`
+          : `<button class="btn primary" id="gen" type="button">${d ? "초안 다시 쓰기" : "초안 쓰기"}</button>`}
+      </div>
+    </div>
+    <div class="status-line" id="gen-status">${state.generating ? "Claude가 생각하는 중… (처음 글자가 나오기까지 30초~1분 걸릴 수 있어요)" : d ? "" : "버튼을 누르면 꼬몽맘 문체로 초안을 써요. 처음 한 번은 Claude 사용 허락을 물어봐요."}</div>
+    ${d && !state.generating ? `
+      <div class="draft-bar">
+        <div class="counts">
+          ${left ? `<span class="c-photo">📷 사진 ${c["사진"]}</span><span class="c-exp">✍️ 경험 ${c["경험 추가"]}</span><span class="c-warn">⚠️ 확인 ${c["확인 필요"]}</span>${c["제휴"] ? `<span class="c-link">🔗 제휴 ${c["제휴"]}</span>` : ""}` : `<span class="c-ok">채울 자리 없음 · 발행 준비 끝</span>`}
+        </div>
+        <div class="row" style="margin-left:auto">
+          <button class="btn" id="edit" type="button">${state.editing ? "미리보기" : "직접 고치기"}</button>
+          <button class="btn naver" id="copy" type="button">본문 복사하기</button>
+        </div>
+      </div>
+      <div class="status-line" id="copy-msg"></div>
+      <div class="seo">
+        <div><b>요약</b>${esc(d.meta || "")}</div>
+        <div><b>태그</b>${(d.tags || []).map(x => "#" + esc(String(x).replace(/\s+/g, ""))).join(" ")}</div>
+        <div class="row"><button class="btn ghost" id="copy-tags" type="button">태그 복사</button><button class="btn ghost" id="copy-md" type="button">마크다운 복사</button></div>
+      </div>` : ""}
+    <div id="preview" class="phone">${state.generating ? "" : d ? (state.editing ? "" : previewHtml(d)) : `<div class="empty"><b>아직 초안이 없어요</b>메모를 적고 [초안 쓰기]를 눌러 주세요.</div>`}</div>
+    ${d && state.editing && !state.generating ? `
+      <div class="editor"><label class="lbl" for="edit-body">본문 (마크다운)</label><textarea id="edit-body">${esc(d.body)}</textarea>
+      <div class="row" style="margin-top:8px"><button class="btn primary" id="save-edit" type="button">고친 내용 저장</button><span class="hint">[사진: …] 같은 표시를 지우고 내용을 채운 뒤 저장하세요.</span></div></div>` : ""}
+    ${d && d.checklist?.length && !state.generating ? `<div><span class="lbl">발행 전 체크리스트</span><ul class="checklist">${d.checklist.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+    ${!state.generating ? `
+      <div>
+        <label class="lbl" for="post-url">발행했다면 글 주소</label>
+        <div class="publish-row">
+          <input id="post-url" type="url" placeholder="https://blog.naver.com/samil5240/..." value="${esc(k.postUrl)}">
+          <button class="btn" id="mark-pub" type="button">발행 완료로 표시</button>
+          ${k.status !== "skip" ? `<button class="btn ghost" id="mark-skip" type="button">이번엔 건너뛰기</button>` : `<button class="btn ghost" id="mark-todo" type="button">다시 예정으로</button>`}
+        </div>
+      </div>` : ""}`;
+
+  $("memo").oninput = e => Store.saveMemoSoon(k.id, e.target.value);
+  desk.querySelectorAll("[data-voice]").forEach(b => b.onclick = () => { state.voice = b.dataset.voice; renderDesk(); });
+  desk.querySelectorAll("[data-tier]").forEach(b => b.onclick = () => { state.tier = b.dataset.tier; renderDesk(); });
+  $("gen")?.addEventListener("click", generate);
+  $("stop")?.addEventListener("click", () => state.ctl?.abort());
+  $("copy")?.addEventListener("click", copyPost);
+  $("copy-tags")?.addEventListener("click", () => copyText((d.tags || []).map(x => "#" + String(x).replace(/\s+/g, "")).join(" "), "태그를 복사했어요."));
+  $("copy-md")?.addEventListener("click", () => copyText(`# ${d.title}\n\n${d.body}`, "마크다운을 복사했어요."));
+  $("edit")?.addEventListener("click", () => { state.editing = !state.editing; renderDesk(); });
+  $("save-edit")?.addEventListener("click", async () => { await Store.saveDraft(k.id, { ...d, body: $("edit-body").value }); state.editing = false; renderDesk(); });
+  $("mark-pub")?.addEventListener("click", () => Store.saveKw(k.id, { status: "published", postUrl: $("post-url").value.trim() }));
+  $("mark-skip")?.addEventListener("click", () => Store.saveKw(k.id, { status: "skip" }));
+  $("mark-todo")?.addEventListener("click", () => Store.saveKw(k.id, { status: state.drafts[k.id] ? "draft" : "todo" }));
+  if (state.generating && state.streamText) renderStream();
+}
+
+function render() {
+  renderStats(); renderFilters(); renderList();
+  if (!state.generating) renderDesk();
+  else if (!$("preview")) renderDesk();
+}
+
+$("add-own").onclick = () => { state.ownForm = true; state.selected = null; render(); if (matchMedia("(max-width: 860px)").matches) $("desk-h").scrollIntoView({ behavior: "smooth" }); };
+
+// 첫 화면: 이번 주에 쓸 첫 키워드를 골라 둠
+(() => {
+  const first = allKeywords().filter(isDue).sort((a, b) => (monthOffset(a.month, NOW_MONTH) === 11 ? -1 : 0) - (monthOffset(b.month, NOW_MONTH) === 11 ? -1 : 0) || a.week - b.week || a.priority.localeCompare(b.priority))[0];
+  state.selected = [...KW.values()].find(k => k.status === "draft")?.id || first?.id || null;
+})();
+Store.init();
+getSample().then(s => { if (!s) note("Claude 연결은 claude.ai에서 열었을 때만 돼요. 지금은 캘린더와 저장된 초안만 볼 수 있어요.", "info"); });
+</script>

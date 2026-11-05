@@ -183,6 +183,14 @@ def cmd_analyze_blog(cfg: Config, args) -> int:
     return 0
 
 
+def cmd_build_web(cfg: Config, args) -> int:
+    from .webapp import build_web
+
+    out = build_web(cfg)
+    print(f"웹페이지를 만들었습니다: {out.relative_to(cfg.root)}")
+    return 0
+
+
 def cmd_calendar(cfg: Config, args) -> int:
     today = _today(args)
     data = [(t.key, t.name, [r.resolved(cfg.region) for r in kwmod.load(t.csv)]) for t in cfg.topics.values()]
@@ -238,6 +246,8 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("calendar", help="전체 캘린더를 HTML로 만들기")
     s.add_argument("--out", default="calendar.html")
 
+    sub.add_parser("build-web", help="글공방 웹페이지(web/blog-writer.html) 다시 만들기")
+
     s = sub.add_parser("analyze-blog", help="내 네이버 블로그 글을 읽어 문체 다시 분석")
     s.add_argument("blog_id", help="네이버 블로그 아이디 (예: samil5240)")
     s.add_argument("--out", default="style/raw", help="결과 폴더 (기본 style/raw)")
@@ -269,6 +279,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_mark(cfg, args, "skip")
         if args.command == "calendar":
             return cmd_calendar(cfg, args)
+        if args.command == "build-web":
+            return cmd_build_web(cfg, args)
         if args.command == "analyze-blog":
             return cmd_analyze_blog(cfg, args)
     except (KeyError, PublishError) as e:

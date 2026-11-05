@@ -22,6 +22,7 @@ class TopicConfig:
     max_per_day: int = 1
     disclaimer: str = ""
     wp_env_prefix: str = ""
+    label: str = ""      # 화면에 쓰는 짧은 이름 (비우면 name)
     voice: str = ""      # 문체 가이드 파일 경로 (style/voice_*.md)
     greeting: str = ""   # 첫 줄 인사 (비우면 [author] greeting)
     voice_text: str = field(default="", repr=False)
@@ -89,6 +90,7 @@ def load_config(path: str | Path = "config.toml") -> Config:
         raw["csv"] = root / raw["csv"]
         topic = TopicConfig(key=key, **raw)
         topic.greeting = topic.greeting or author.get("greeting", "")
+        topic.label = topic.label or topic.name
         if topic.voice:
             voice_path = root / topic.voice
             if not voice_path.is_file():
