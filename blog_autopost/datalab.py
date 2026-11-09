@@ -15,7 +15,14 @@ from pathlib import Path
 
 import requests
 
-API_URL = "https://openapi.naver.com/v1/datalab/search"
+# 2026년 여름부터 검색어 트렌드 API는 NAVER API HUB(네이버 클라우드 콘솔)에서 발급한 키로 쓴다.
+# 예전 네이버 개발자센터 키(openapi.naver.com)도 한시적으로 동작한다.
+PROVIDERS = {
+    "hub": {"url": "https://naverapihub.apigw.ntruss.com/search-trend/v1/search",
+            "id_header": "X-NCP-APIGW-API-KEY-ID", "secret_header": "X-NCP-APIGW-API-KEY"},
+    "developers": {"url": "https://openapi.naver.com/v1/datalab/search",
+                   "id_header": "X-Naver-Client-Id", "secret_header": "X-Naver-Client-Secret"},
+}
 MAX_GROUPS = 5          # 한 요청에 넣을 수 있는 키워드 그룹 수 (API 제한)
 SPARK = "▁▂▃▄▅▆▇█"
 
@@ -28,22 +35,25 @@ class DataLabError(RuntimeError):
 class DataLabClient:
     client_id: str
     client_secret: str
+    provider: str = "hub"
     timeout: float = 20.0
     session: requests.Session | None = None
     calls: int = 0
 
     def __post_init__(self) -> None:
+        if self.provider not in PROVIDERS:
+            raise DataLabError(f"provider는 {sorted(PROVIDERS)} 중 하나여야 합니다: {self.provider}")
         self.session = self.session or requests.Session()
 
     @classmethod
-    def from_env(cls) -> "DataLabClient":
+    def from_env(cls, provider: str = "hub") -> "DataLabClient":
         cid = os.environ.get("NAVER_CLIENT_ID", "").strip()
         secret = os.environ.get("NAVER_CLIENT_SECRET", "").strip()
         missing = [n for n, v in (("NAVER_CLIENT_ID", cid), ("NAVER_CLIENT_SECRET", secret)) if not v]
         if missing:
             raise DataLabError(
-                f"환경변수가 없습니다: {', '.join(missing)} — .env 파일에 네이버 개발자센터의 Client ID와 Secret을 적어 주세요.")
-        return cls(cid, secret)
+                f"환경변수가 없습니다: {', '.join(missing)} — .env 파일에 NAVER API HUB 앱의 Client ID와 Client Secret을 적어 주세요.")
+        return cls(cid, secret, provider)
 
     def search(self, groups: list[tuple[str, list[str]]], start: str, end: str, time_unit: str = "month",
                device: str | None = None, gender: str | None = None, ages: list[str] | None = None) -> dict:
@@ -60,21 +70,29 @@ class DataLabClient:
             body["gender"] = gender
         if ages:
             body["ages"] = ages
-        resp = self.session.post(API_URL, json=body, timeout=self.timeout, headers={
-            "X-Naver-Client-Id": self.client_id,
-            "X-Naver-Client-Secret": self.client_secret,
+        api = PROVIDERS[self.provider]
+        resp = self.session.post(api["url"], json=body, timeout=self.timeout, headers={
+            api["id_header"]: self.client_id,
+            api["secret_header"]: self.client_secret,
         })
         self.calls += 1
         if resp.status_code != 200:
+            code = ""
             try:
                 err = resp.json()
-                detail = f"{err.get('errorMessage', '')} (코드 {err.get('errorCode', '?')})"
+                inner = err.get("error", err)   # HUB: {"error": {...}}, 개발자센터: {...}
+                code = str(inner.get("errorCode", ""))
+                detail = " ".join(str(x) for x in (inner.get("message") or inner.get("errorMessage", ""),
+                                                    inner.get("details", "")) if x) + f" (코드 {code or '?'})"
             except ValueError:
                 detail = resp.text[:200]
+            if code == "210":
+                raise DataLabError("이 키로는 검색어 트렌드 API를 쓸 수 없습니다. 네이버 클라우드 콘솔의 "
+                                   f"NAVER API HUB에서 Search Trend 이용을 신청했는지 확인하세요. {detail}")
             if resp.status_code == 401:
                 raise DataLabError(f"인증 실패: Client ID/Secret을 확인하세요. {detail}")
             if resp.status_code == 429:
-                raise DataLabError(f"오늘 호출 한도를 넘었습니다(하루 1,000회). 내일 다시 실행하세요. {detail}")
+                raise DataLabError(f"호출 한도를 넘었습니다. 한도가 풀린 뒤 다시 실행하세요. {detail}")
             raise DataLabError(f"데이터랩 오류 {resp.status_code}: {detail}")
         return resp.json()
 

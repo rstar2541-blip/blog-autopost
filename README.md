@@ -52,13 +52,14 @@ CSV 파일은 엑셀이나 구글 시트에서 바로 열립니다. GitHub에서
 
 ## 네이버 데이터랩으로 글감 고르기
 
-[네이버 데이터랩 검색어 트렌드 API](https://developers.naver.com/docs/serviceapi/datalab/search/search.md)로 캘린더 키워드의 실제 검색 추이를 받아 옵니다. `.env`에 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`을 적어 두세요.
+네이버 검색어 트렌드 API로 캘린더 키워드의 실제 검색 추이를 받아 옵니다. 이 API는 2026년부터 **NAVER API HUB**(네이버 클라우드 콘솔)에서 발급한 앱 키로 씁니다. `.env`에 그 앱의 `NAVER_CLIENT_ID`(X-NCP-APIGW-API-KEY-ID), `NAVER_CLIENT_SECRET`(X-NCP-APIGW-API-KEY)을 적어 두세요. 예전 네이버 개발자센터 키라면 `config.toml`의 `[datalab] provider = "developers"`로 바꿉니다.
 
 ```bash
 python -m blog_autopost trends update
 ```
 
-- 키워드 401개의 최근 3년 월별 추이를 받아 `keywords/trends.csv`에 저장합니다. 4개씩 묶어 약 100번 호출하며, 하루 한도는 1,000번입니다.
+- 키워드 401개의 최근 3년 월별 추이를 받아 `keywords/trends.csv`에 저장합니다. 4개씩 묶어 약 100번 호출합니다.
+- 데이터랩은 검색이 적은 긴 문구에는 수치를 주지 않습니다(2026년 11월 조회: 401개 중 288개). 그런 글은 경쟁이 적은 롱테일이라 써도 좋고, 성수기는 `trends compare`로 더 짧은 대표 검색어를 확인하세요.
 - 화면에 세 가지를 보여 줍니다.
   - **지금 쓰면 좋은 글감**: 다음 두 달 동안 검색이 많을 키워드
   - **검색이 거의 없는 키워드**: 다른 표현으로 바꿀 후보

@@ -7,7 +7,7 @@ from blog_autopost import keywords as kw
 from blog_autopost.config import load_config
 
 ROOT = Path(__file__).resolve().parents[1]
-CSVS = sorted((ROOT / "keywords").glob("*.csv"))
+CSVS = sorted((ROOT / "keywords").glob("0*.csv"))  # trends.csv 는 캘린더가 아님
 
 
 def test_four_calendars_exist():

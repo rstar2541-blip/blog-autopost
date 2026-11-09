@@ -583,7 +583,7 @@ function kwButton(k) {
     <span class="t"><b>${esc(k.keyword)}</b><small>${esc(TOPIC[k.topic]?.label || "")} · ${esc(k.title)}</small></span>
     <span class="pill ${k.status}">${STATUS_LABEL[k.status] || k.status}</span>${(() => {
       const tr = trendOf(k.id); if (!tr) return "";
-      return tr.volume < 1 ? `<span class="vol low">검색 거의 없음</span>`
+      return tr.volume < 1 ? `<span class="vol low">검색 적음 · 데이터랩 수치 없음</span>`
         : `<span class="vol">검색 지수 ${fmtVol(tr.volume)} · 최다 ${tr.peak}월</span>`;
     })()}`;
   b.onclick = () => {
@@ -627,7 +627,7 @@ function trendBox(k) {
   const tr = trendOf(k.id);
   const meta = DATA.trendMeta || {};
   if (!tr) return `<div class="trend"><p class="trend-sum">캘린더에 없는 키워드라 검색 추이가 없어요. 터미널에서 <b>python -m blog_autopost trends compare "${esc(k.keyword)}"</b>로 확인할 수 있어요.</p></div>`;
-  if (tr.volume < 1) return `<div class="trend"><p class="trend-sum">네이버에서 이 검색어로는 <b>검색이 거의 없어요</b>. 사람들이 실제로 쓰는 다른 표현으로 바꾸는 걸 고려해 보세요.</p></div>`;
+  if (tr.volume < 1) return `<div class="trend"><p class="trend-sum">이 문구는 검색이 적어서 <b>데이터랩이 수치를 주지 않아요</b>. 경쟁이 적은 롱테일이라 써도 좋지만, 성수기는 더 짧은 대표 검색어로 확인해 보세요: <b>python -m blog_autopost trends compare "${esc(k.keyword.split(" ").slice(0, 2).join(" "))}"</b></p></div>`;
   const W = 360, H = 120, top = 16, base = 86, slot = W / 12, bw = Math.min(22, slot - 6);
   const max = Math.max(...tr.byMonth, 0.0001);
   const bars = tr.byMonth.map((v, i) => {

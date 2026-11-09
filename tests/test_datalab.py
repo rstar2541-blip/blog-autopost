@@ -65,7 +65,10 @@ def test_fetch_relative_is_comparable_across_batches():
     assert client.calls == 2  # 5개 = 4개 + 1개, 기준은 매번 포함
     assert all(len(b["keywordGroups"]) <= 5 and b["keywordGroups"][0]["groupName"] == "텃밭" for b in session.bodies)
     assert out["a"][0] == pytest.approx(200) and out["f"][0] == pytest.approx(50)
-    assert session.headers[0] == {"X-Naver-Client-Id": "id", "X-Naver-Client-Secret": "secret"}
+    assert session.headers[0] == {"X-NCP-APIGW-API-KEY-ID": "id", "X-NCP-APIGW-API-KEY": "secret"}
+    legacy = FakeSession(table)
+    DataLabClient("id", "secret", provider="developers", session=legacy).search([("a", ["a"])], start, end)
+    assert legacy.headers[0] == {"X-Naver-Client-Id": "id", "X-Naver-Client-Secret": "secret"}
 
 
 def test_analyze_finds_peak_yoy_and_next_months():
@@ -90,6 +93,11 @@ def test_errors_are_readable():
     with pytest.raises(DataLabError, match="인증 실패"):
         client.search([("a", ["a"])], start, end)
     client = DataLabClient("id", "s", session=FakeSession({"a": {periods[0]: 3}}))
+    hub = FakeSession({}, status=401)
+    hub.post = lambda *a, **k: FakeResp(401, {"error": {"errorCode": "210", "message": "Permission Denied",
+                                                        "details": "A subscription to the API is required."}})
+    with pytest.raises(DataLabError, match="Search Trend 이용을 신청"):
+        DataLabClient("id", "s", session=hub).search([("a", ["a"])], start, end)
     with pytest.raises(DataLabError, match="기준 키워드"):
         fetch_relative(client, ["a"], start, end, periods, "없는기준")
 
@@ -119,11 +127,11 @@ def test_cli_trends_update_writes_report_and_applies_peaks(tmp_path, monkeypatch
         # 키워드마다 다른 달에 몰리게
         table[r.keyword] = {p: (90 if int(p[5:]) == (i % 12) + 1 else 3) for p in periods} if i % 10 else {}
     session = FakeSession(table)
-    monkeypatch.setattr(DataLabClient, "from_env", classmethod(lambda c: DataLabClient("id", "s", session=session)))
+    monkeypatch.setattr(DataLabClient, "from_env", classmethod(lambda c, provider="hub": DataLabClient("id", "s", session=session)))
     assert cli.main(["--config", "config.toml", "--today", "2026-11-09", "trends", "update",
                      "--topic", "seedling", "--apply-peaks"]) == 0
     out = capsys.readouterr().out
-    assert "지금 쓰면 좋은 글감" in out and "검색이 거의 없는 키워드" in out and "API 호출 25회" in out
+    assert "지금 쓰면 좋은 글감" in out and "데이터랩 수치가 거의 없는 키워드" in out and "API 호출 25회" in out
     report = read_trends(tmp_path / "keywords" / "trends.csv")
     assert len(report) == len(rows)
     first = rows[1]  # i=1 → 2월에 몰림
@@ -138,7 +146,7 @@ def test_cli_trends_compare(tmp_path, monkeypatch, capsys):
     start, end, periods = month_range(date(2026, 11, 9), 36)
     session = FakeSession({"고추모종": {p: (100 if p.endswith("-04") else 10) for p in periods},
                            "토마토모종": {p: 20 for p in periods}})
-    monkeypatch.setattr(DataLabClient, "from_env", classmethod(lambda c: DataLabClient("id", "s", session=session)))
+    monkeypatch.setattr(DataLabClient, "from_env", classmethod(lambda c, provider="hub": DataLabClient("id", "s", session=session)))
     assert cli.main(["--config", str(ROOT / "config.toml"), "--today", "2026-11-09", "trends", "compare",
                      "고추모종", "토마토모종"]) == 0
     out = capsys.readouterr().out

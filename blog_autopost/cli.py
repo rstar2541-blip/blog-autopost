@@ -204,7 +204,7 @@ def cmd_trends_update(cfg: Config, args) -> int:
     anchor = args.anchor or cfg.datalab.get("anchor", "텃밭")
     years = args.years or int(cfg.datalab.get("years", 3))
     start, end, periods = month_range(today, years * 12)
-    client = DataLabClient.from_env()
+    client = DataLabClient.from_env(cfg.datalab.get("provider", "hub"))
 
     topics = _topics(cfg, args.topic)
     rows_by_topic = {t.key: kwmod.load(t.csv) for t in topics}
@@ -212,7 +212,7 @@ def cmd_trends_update(cfg: Config, args) -> int:
     print(f"데이터랩에서 {len(set(terms))}개 검색어의 {start} ~ {end} 월별 추이를 받는 중 (기준: '{anchor}')…")
     series = fetch_relative(client, terms, start, end, periods, anchor,
                             progress=lambda d, n: print(f"\r  {d}/{n}", end="", flush=True))
-    print(f"\n  API 호출 {client.calls}회 (하루 한도 1,000회)")
+    print(f"\n  API 호출 {client.calls}회")
 
     out_path = cfg.root / "keywords" / "trends.csv"
     existing = read_trends(out_path)
@@ -233,21 +233,35 @@ def cmd_trends_update(cfg: Config, args) -> int:
             rows_out.append({"id": kid, **old})
     write_trends(out_path, rows_out)
 
-    todo = [v for v in stats.values() if v[1].status == "todo" and v[3].has_data]
-    print("\n[지금 쓰면 좋은 글감] 다음 두 달 예상 검색 지수 순")
-    for _, r, kw, st_ in sorted(todo, key=lambda v: -v[3].next2)[:args.top]:
-        print(_trend_line(f"{r.id} {kw.keyword}", st_, 26) + f"  → 다음 두 달 {st_.next2:.1f}")
+    todo = [v for v in stats.values() if v[1].status == "todo" and v[3].volume >= args.min_volume]
+    print("\n[지금 쓰면 좋은 글감] 주제별, 다음 두 달 예상 검색 지수 순")
+    for t in topics:
+        picks = sorted((v for v in todo if v[0] == t.key), key=lambda v: -v[3].next2)[:args.top]
+        if picks:
+            print(f" {t.label}")
+        for _, r, kw, st_ in picks:
+            print(_trend_line(f"{r.id} {kw.keyword}", st_, 24) + f"  → 다음 두 달 {st_.next2:.1f}")
 
-    empty = [v for v in stats.values() if not v[3].has_data or v[3].volume < args.min_volume]
-    print(f"\n[검색이 거의 없는 키워드] {len(empty)}개 — 다른 검색어로 바꾸는 걸 고려하세요")
-    for _, r, kw, st_ in sorted(empty, key=lambda v: v[3].volume)[:10]:
-        print(f"  {r.id} {kw.keyword}  (지수 {st_.volume:.2f})")
+    low = [v for v in stats.values() if v[3].volume < args.min_volume]
+    print(f"\n[데이터랩 수치가 거의 없는 키워드] {len(low)}개 / {len(stats)}개")
+    print("  검색이 적은 긴 문구라는 뜻이에요(경쟁도 적은 롱테일). 글은 써도 되지만,")
+    print("  성수기·검색량은 trends compare 로 더 짧은 대표 검색어를 확인해 보세요. 예: '마늘 월동 관리' → '마늘 심는 시기'")
 
-    off = [v for v in stats.values() if v[3].has_data and v[3].seasonality >= 1.3
+    def months_to_peak(v):
+        return (v[3].peak_month - v[1].month) % 12
+
+    off = [v for v in stats.values() if v[3].volume >= args.min_volume and v[3].seasonality >= 1.3
            and min((v[3].peak_month - v[1].peak_month) % 12, (v[1].peak_month - v[3].peak_month) % 12) >= 2]
     print(f"\n[성수기 예상이 실제와 2달 이상 다른 키워드] {len(off)}개")
     for _, r, kw, st_ in off[:10]:
         print(f"  {r.id} {kw.keyword}  예상 {r.peak_month}월 → 실제 {st_.peak_month}월")
+
+    late = sorted((v for v in stats.values() if v[1].status == "todo" and v[3].volume >= args.min_volume
+                   and v[3].seasonality >= 1.5 and months_to_peak(v) >= 6), key=lambda v: -v[3].volume)
+    print(f"\n[발행 달을 앞당기면 좋은 글] {len(late)}개 — 성수기가 지난 뒤에 발행하도록 잡혀 있어요")
+    for _, r, kw, st_ in late[:10]:
+        best = (st_.peak_month - 2) % 12 + 1
+        print(f"  {r.id} {kw.keyword}  발행 {r.month}월 / 성수기 {st_.peak_month}월 → {best}월 발행 추천")
 
     if args.apply_peaks:
         changed = 0
@@ -255,7 +269,7 @@ def cmd_trends_update(cfg: Config, args) -> int:
             rows = rows_by_topic[t.key]
             for r in rows:
                 st_ = stats[r.id][3]
-                if st_.has_data and st_.seasonality >= 1.3 and r.peak_month != st_.peak_month:
+                if st_.volume >= args.min_volume and st_.seasonality >= 1.3 and r.peak_month != st_.peak_month:
                     r.peak_month = st_.peak_month
                     changed += 1
             kwmod.save(t.csv, rows)
@@ -273,7 +287,7 @@ def cmd_trends_compare(cfg: Config, args) -> int:
     today = _today(args)
     years = args.years or int(cfg.datalab.get("years", 3))
     start, end, periods = month_range(today, years * 12)
-    client = DataLabClient.from_env()
+    client = DataLabClient.from_env(cfg.datalab.get("provider", "hub"))
     data = client.search([(t, [x.strip() for x in t.split(",") if x.strip()]) for t in args.terms], start, end)
     results = {r["title"]: r for r in data.get("results", [])}
     print(f"{start} ~ {end} · 숫자는 이 비교 안에서 가장 많이 검색된 달 = 100\n")
@@ -356,8 +370,8 @@ def build_parser() -> argparse.ArgumentParser:
     t.add_argument("--topic")
     t.add_argument("--anchor", help="기준 검색어 (기본: config.toml [datalab] anchor)")
     t.add_argument("--years", type=int, help="몇 년치 (기본 3)")
-    t.add_argument("--top", type=int, default=10, help="추천 글감 몇 개 보여줄지")
-    t.add_argument("--min-volume", type=float, default=1.0, help="이보다 작으면 '검색 거의 없음'")
+    t.add_argument("--top", type=int, default=5, help="주제별 추천 글감 몇 개 보여줄지")
+    t.add_argument("--min-volume", type=float, default=1.0, help="검색 지수가 이보다 작으면 '수치 거의 없음'")
     t.add_argument("--apply-peaks", action="store_true", help="캘린더의 검색 성수기 칸을 실제 데이터로 바꾸기")
     t = tsub.add_parser("compare", help="검색어 1~5개 추이 비교 (쉼표로 묶으면 한 그룹)")
     t.add_argument("terms", nargs="+")
