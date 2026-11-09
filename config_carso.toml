@@ -1,0 +1,118 @@
+# 카쏘 글공방 설정 (네이버 블로그 efgm3 'so의 정보 차고')
+# 사용: python -m blog_autopost --config config_carso.toml build-web
+#       python -m blog_autopost --config config_carso.toml trends update
+# 꼬몽맘 글공방 설정은 config.toml 에 따로 있습니다.
+
+drafts_dir = "drafts_carso"
+
+[author]
+region = ""
+nickname = "카쏘"
+greeting = "안녕하세요! 카쏘입니다."
+
+[datalab]
+provider = "hub"
+anchor = "텃밭"   # 꼬몽맘 글공방과 같은 기준이라 두 블로그의 검색 지수를 나란히 비교할 수 있음
+years = 3
+
+[render]
+align = "center"
+
+[site]
+name = "카쏘 글공방"
+blog_id = "efgm3"
+tagline = "so의 정보 차고 · 키워드 고르기 → 메모 → Claude 초안 → 네이버에 붙여넣기"
+web_out = "web/carso-writer.html"
+trends = "keywords/carso/trends.csv"
+brand_font = "Black Han Sans"
+brand_weight = 400
+memo_example = "지난겨울 아침에 방전돼서 긴급출동 부름, 사진 2장 있음 / 배터리 교체 견적 받은 금액"
+own_example = "타이어 공기압 경고등"
+own_title_example = "타이어 공기압 경고등 켜졌을 때 순서대로 할 일"
+
+[site.colors]          # 차고의 철판·코발트 색
+bg = "#f2f4f7"
+ink = "#18202b"
+muted = "#5a6676"
+line = "#dce1e8"
+leaf = "#1f5fae"
+leaf-soft = "#e3ecf8"
+soil = "#8a5a1c"
+bar = "#c8d1dc"
+
+[site.colors_dark]
+bg = "#11151b"
+panel = "#19202a"
+ink = "#e5eaf1"
+muted = "#9eabbd"
+line = "#283140"
+leaf = "#79aaf0"
+leaf-soft = "#1b2a40"
+soil = "#d4a15e"
+bar = "#364254"
+
+# 작업대 '화자' 버튼. 주제마다 voice 로 기본 화자를 정해 두면 키워드를 고를 때 그 화자로 바뀜
+[[site.voices]]
+key = "carso"
+label = "카쏘"
+file = "style/voice_carso.md"
+
+[[site.voices]]
+key = "info"
+label = "정보형"
+file = "style/voice_carso_info.md"
+greeting = ""
+center = false
+
+[generator]
+engine = "template"
+model = "claude-opus-5-5"
+effort = "medium"
+max_tokens = 16000
+lookahead_months = 1
+
+# ---------------------------------------------------------------- 주제별 설정
+# persona 는 블로그 글 4편에서 확인한 내용만 적었습니다. 타는 차, 하는 일 등을 더 적으면 글이 더 구체적이 됩니다.
+
+[topics.bmw]
+name = "BMW 관리·유지비 (Car Life)"
+label = "BMW 관리"
+csv = "keywords/04_bmw.csv"          # 꼬몽맘 글공방과 같은 파일 (상태를 함께 씀)
+platform = "naver"
+max_per_day = 1
+voice = "style/voice_carso.md"
+persona = "자동차와 생활 정보를 정리하는 네이버 블로그 'so의 정보 차고'의 운영자 카쏘. BMW 관리·유지비와 제원을 공식 자료와 직접 확인한 내용으로 정리한다."
+audience = "BMW 구매를 고민하거나 이미 타고 있는 30~50대 오너"
+disclaimer = "차량 정비·사양·세금 정보는 모델과 연식, 시점에 따라 다를 수 있습니다. 정확한 내용은 BMW 공식 서비스센터와 관련 기관에서 확인하세요."
+
+[topics.car_review]
+name = "차량 제원·리뷰 (Car Life)"
+label = "제원·리뷰"
+csv = "keywords/carso/01_car_review.csv"
+platform = "naver"
+max_per_day = 1
+voice = "style/voice_carso_info.md"
+persona = "자동차와 생활 정보를 정리하는 네이버 블로그 'so의 정보 차고'의 운영자 카쏘. 국산차·수입차·전기차의 제원과 트림을 제조사 공식 자료 기준으로 풀어 쓰고, 어떤 사람에게 어울리는 차인지 정리한다."
+audience = "차를 새로 사거나 바꾸려고 모델과 트림을 비교하는 30~50대"
+disclaimer = "제원·가격·트림 구성은 연식과 판매 시점에 따라 바뀔 수 있습니다. 구매 전 제조사 공식 자료와 전시장에서 최신 정보를 확인하세요."
+
+[topics.life]
+name = "생활 꿀팁 (생활 정보)"
+label = "생활 꿀팁"
+csv = "keywords/carso/02_life_tips.csv"
+platform = "naver"
+max_per_day = 1
+voice = "style/voice_carso.md"
+persona = "자동차와 생활 정보를 정리하는 네이버 블로그 'so의 정보 차고'의 운영자 카쏘. 계절마다 돌아오는 집안일과 정리법을 오래 유지되는 기준 중심으로 알려 준다."
+audience = "집안일과 정리를 덜 힘들게 하고 싶은 20~50대"
+
+[topics.benefits]
+name = "혜택·지원금 (생활 정보)"
+label = "혜택·지원금"
+csv = "keywords/carso/03_benefits.csv"
+platform = "naver"
+max_per_day = 1
+voice = "style/voice_carso_info.md"
+persona = "자동차와 생활 정보를 정리하는 네이버 블로그 'so의 정보 차고'의 운영자 카쏘. 세금 환급, 지원금, 복지 제도를 신청 시기와 조건 중심으로 정리한다."
+audience = "받을 수 있는 지원금과 환급을 놓치고 싶지 않은 직장인·가정"
+disclaimer = "지원 제도의 대상·금액·신청 기간은 해마다 바뀔 수 있습니다. 신청 전에 정부24, 국세청 등 해당 기관의 공고를 꼭 확인하세요."

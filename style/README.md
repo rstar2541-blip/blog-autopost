@@ -9,6 +9,8 @@
 | `README.md` | 이 분석 리포트 (사람이 읽는 용) |
 | `voice_kkomongmom.md` | 꼬몽맘 목소리 규칙. 초안 생성 시 Claude에게 그대로 전달됨 |
 | `voice_kkomong_grandpa.md` | 꼬몽할배(아버님) 목소리 규칙. "아빠 코너" 글을 쓸 때 사용 |
+| `carso.md` | 카쏘 블로그(efgm3) 문체 분석 |
+| `voice_carso.md`, `voice_carso_info.md` | 카쏘 목소리 규칙 (친근한 글 / 정보형 글). 카쏘 글공방에서 사용 |
 
 ## 1. 한눈에 보기
 

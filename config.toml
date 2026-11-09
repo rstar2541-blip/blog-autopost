@@ -20,6 +20,32 @@ years = 3         # 몇 년치 월별 추이를 볼지
 # center: 붙여넣기용 HTML을 가운데 정렬 (블로그 글 86~100%가 가운데 정렬 — style/README.md 참고)
 align = "center"
 
+[site]
+# 글공방 웹페이지 (python -m blog_autopost build-web). 다른 블로그용은 config_carso.toml 처럼 파일을 따로 둠
+name = "꼬몽맘 글공방"
+blog_id = "samil5240"
+web_out = "web/blog-writer.html"
+trends = "keywords/trends.csv"
+brand_font = "Gaegu"
+brand_weight = 700
+memo_example = "작년 4월 25일 고추 심었다가 냉해, 사진 3장 있음 / 아빠 말: 지온 15도 넘을 때 심어야 함"
+own_example = "조경 내역서 작성"
+own_title_example = "조경 내역서 작성 방법, 순서대로 알려드려요"
+
+# 작업대의 '화자' 버튼. 첫 번째가 기본. greeting 을 안 적으면 [author] greeting
+[[site.voices]]
+key = "kkomongmom"
+label = "꼬몽맘"
+file = "style/voice_kkomongmom.md"
+
+[[site.voices]]
+key = "grandpa"
+label = "꼬몽할배"
+file = "style/voice_kkomong_grandpa.md"
+greeting = "안녕하세요, 꼬몽할배입니다."
+center = false
+note = "이번 글은 운영자의 아빠 꼬몽할배가 화자입니다."
+
 [generator]
 # template : 인터넷 없이 글 뼈대(소제목·사진 자리·확인할 것)만 만듦. 무료.
 # claude   : Claude API로 초안 전체를 씀. ANTHROPIC_API_KEY 필요 (사용한 만큼 요금).

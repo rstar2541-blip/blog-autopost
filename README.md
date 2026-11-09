@@ -50,6 +50,33 @@ CSV 파일은 엑셀이나 구글 시트에서 바로 열립니다. GitHub에서
   python -m blog_autopost build-web
   ```
 
+## 카쏘 글공방 (efgm3 'so의 정보 차고')
+
+같은 도구로 만든 카쏘 블로그용 글쓰기 페이지입니다: https://claude.ai/artifact/3ugrke3uD7pPV13jnVo4QD
+
+설정은 `config_carso.toml` 하나에 따로 있고, 모든 명령에 `--config config_carso.toml`을 붙이면 카쏘 쪽으로 동작합니다.
+
+| 주제 | 파일 | 키워드 | 기본 화자 |
+|---|---|---|---|
+| BMW 관리·유지비 | `keywords/04_bmw.csv` (꼬몽맘 글공방과 같은 파일) | 100 | 카쏘 |
+| 차량 제원·리뷰 | `keywords/carso/01_car_review.csv` (CR) | 100 | 정보형 |
+| 생활 꿀팁 | `keywords/carso/02_life_tips.csv` (LT) | 100 | 카쏘 |
+| 혜택·지원금 | `keywords/carso/03_benefits.csv` (BF) | 100 | 정보형 |
+
+- 화자 **카쏘**는 해요체·짧은 줄·가운데 정렬(`style/voice_carso.md`), **정보형**은 합니다체·인사말 없음·왼쪽 정렬(`style/voice_carso_info.md`)입니다. 분석 내용은 `style/carso.md`.
+- 키워드를 고르면 그 주제의 기본 화자로 바뀌고, 버튼으로 언제든 바꿀 수 있습니다.
+- 검색 추이는 `keywords/carso/trends.csv`에 따로 저장되고, 기준 검색어는 꼬몽맘 글공방과 같은 '텃밭'이라 두 블로그의 검색 지수를 나란히 비교할 수 있습니다.
+
+```bash
+python -m blog_autopost --config config_carso.toml trends update
+```
+
+```bash
+python -m blog_autopost --config config_carso.toml build-web
+```
+
+다른 블로그용 글공방을 더 만들려면 `config_carso.toml`을 복사해 `[site]`(이름, 블로그 아이디, 색, 화자)와 주제를 바꾸면 됩니다.
+
 ## 네이버 데이터랩으로 글감 고르기
 
 네이버 검색어 트렌드 API로 캘린더 키워드의 실제 검색 추이를 받아 옵니다. 이 API는 2026년부터 **NAVER API HUB**(네이버 클라우드 콘솔)에서 발급한 앱 키로 씁니다. `.env`에 그 앱의 `NAVER_CLIENT_ID`(X-NCP-APIGW-API-KEY-ID), `NAVER_CLIENT_SECRET`(X-NCP-APIGW-API-KEY)을 적어 두세요. 예전 네이버 개발자센터 키라면 `config.toml`의 `[datalab] provider = "developers"`로 바꿉니다.

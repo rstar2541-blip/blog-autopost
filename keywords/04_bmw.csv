@@ -1,6 +1,6 @@
 ﻿id,month,week,category,keyword,title,intent,peak_month,priority,monetize,status,memo,post_url
 BM-001,11,1,계절관리,BMW 겨울 타이어,"BMW 겨울 타이어 교체, 런플랫 윈터 타이어 고르는 법",구매,11,A,쿠팡:타이어,todo,,
-BM-002,11,1,계절관리,BMW 배터리 방전,"BMW 겨울철 배터리 방전, 원인과 점프 시동 방법",문제해결,12,A,쿠팡:점프스타터,todo,,
+BM-002,11,1,계절관리,BMW 배터리 방전,"BMW 겨울철 배터리 방전, 원인과 점프 시동 방법",문제해결,12,A,쿠팡:점프스타터,published,,https://blog.naver.com/efgm3/224470885886
 BM-003,11,1,계절관리,BMW 겨울철 관리,BMW 겨울철 차량 관리 체크리스트,정보,12,A,쿠팡:차량용품,todo,,
 BM-004,11,2,기능·사용법,BMW 열선 시트,BMW 열선 시트·열선 핸들 설정과 자동 켜짐,정보,12,B,애드센스,todo,,
 BM-005,11,2,구매·리스,BMW 연말 프로모션,"BMW 연말 프로모션, 할인 조건 확인하는 법",구매,11,A,애드센스(금융),todo,,

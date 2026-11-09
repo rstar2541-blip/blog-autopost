@@ -8,6 +8,7 @@ from blog_autopost.config import load_config
 
 ROOT = Path(__file__).resolve().parents[1]
 CSVS = sorted((ROOT / "keywords").glob("0*.csv"))  # trends.csv 는 캘린더가 아님
+CARSO_CSVS = sorted((ROOT / "keywords" / "carso").glob("0*.csv"))
 
 
 def test_four_calendars_exist():
@@ -19,7 +20,7 @@ def test_four_calendars_exist():
     ]
 
 
-@pytest.mark.parametrize("path", CSVS, ids=lambda p: p.stem)
+@pytest.mark.parametrize("path", CSVS + CARSO_CSVS, ids=lambda p: p.parent.name + "/" + p.stem)
 def test_calendar_is_complete(path):
     rows = kw.load(path)
     assert len(rows) >= 100  # 처음 100개 + 직접 추가한 키워드
@@ -35,8 +36,22 @@ def test_calendar_is_complete(path):
         assert r.title and r.keyword and r.category and r.monetize
 
 
+def test_carso_calendars_exist():
+    assert [p.name for p in CARSO_CSVS] == ["01_car_review.csv", "02_life_tips.csv", "03_benefits.csv"]
+
+
+def test_carso_config_points_at_calendars():
+    cfg = load_config(ROOT / "config_carso.toml")
+    assert list(cfg.topics) == ["bmw", "car_review", "life", "benefits"]
+    assert cfg.topics["bmw"].csv == ROOT / "keywords" / "04_bmw.csv"  # 꼬몽맘 글공방과 같은 BMW 캘린더
+    for topic in cfg.topics.values():
+        assert topic.csv.is_file()
+    keywords = [r.keyword for t in cfg.topics.values() for r in kw.load(t.csv)]
+    assert len(keywords) == len(set(keywords)), "카쏘 캘린더끼리 키워드가 겹침"
+
+
 def test_csv_has_bom_for_excel():
-    for path in CSVS:
+    for path in CSVS + CARSO_CSVS:
         assert path.read_bytes().startswith(b"\xef\xbb\xbf")
 
 

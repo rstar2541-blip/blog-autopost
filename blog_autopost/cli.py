@@ -214,7 +214,7 @@ def cmd_trends_update(cfg: Config, args) -> int:
                             progress=lambda d, n: print(f"\r  {d}/{n}", end="", flush=True))
     print(f"\n  API 호출 {client.calls}회")
 
-    out_path = cfg.root / "keywords" / "trends.csv"
+    out_path = cfg.trends_path
     existing = read_trends(out_path)
     rows_out, stats = [], {}
     keep_ids = {r.id for rows in rows_by_topic.values() for r in rows}
@@ -366,7 +366,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("trends", help="네이버 데이터랩 검색어 트렌드")
     tsub = s.add_subparsers(dest="trends_command", required=True)
-    t = tsub.add_parser("update", help="캘린더 키워드 전체의 검색 추이 받기 → keywords/trends.csv")
+    t = tsub.add_parser("update", help="캘린더 키워드 전체의 검색 추이 받기 → [site] trends 파일 (기본 keywords/trends.csv)")
     t.add_argument("--topic")
     t.add_argument("--anchor", help="기준 검색어 (기본: config.toml [datalab] anchor)")
     t.add_argument("--years", type=int, help="몇 년치 (기본 3)")
@@ -377,7 +377,7 @@ def build_parser() -> argparse.ArgumentParser:
     t.add_argument("terms", nargs="+")
     t.add_argument("--years", type=int)
 
-    sub.add_parser("build-web", help="글공방 웹페이지(web/blog-writer.html) 다시 만들기")
+    sub.add_parser("build-web", help="글공방 웹페이지 다시 만들기 ([site] web_out, 기본 web/blog-writer.html)")
 
     s = sub.add_parser("analyze-blog", help="내 네이버 블로그 글을 읽어 문체 다시 분석")
     s.add_argument("blog_id", help="네이버 블로그 아이디 (예: samil5240)")

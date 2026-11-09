@@ -1,0 +1,839 @@
+<title>카쏘 글공방</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans:wght@400&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Nanum+Gothic:wght@400;700;800&display=swap">
+<style>
+/* 레이아웃: 왼쪽 키워드 캘린더 + 오른쪽 작업대(메모 → 초안 → 네이버 미리보기). 휴대폰에서는 위아래로 쌓임 */
+:root {
+  --bg: #f4f6f1;          /* 모종 트레이 옆 흰 벽 */
+  --panel: #ffffff;
+  --ink: #1d2a21;
+  --muted: #5f6d63;
+  --line: #dde3d8;
+  --leaf: #2f7a4c;        /* 모종 잎 */
+  --leaf-soft: #e3f0e6;
+  --soil: #7a5a3a;        /* 상토 */
+  --naver: #03c75a;
+  --warn: #b42318;  --warn-bg: #fdebe9;
+  --exp: #a8550a;   --exp-bg: #fff1e1;
+  --photo: #1f4fb8; --photo-bg: #e7efff;
+  --link: #0b7a52;  --link-bg: #e3f7ee;
+  --todo: #8a948d; --draft: #b7791f; --pub: #2f7a4c;
+  --bar: #c9d3cb;         /* 강조하지 않는 달 */
+  --font-brand: "Gaegu", "Nanum Gothic", sans-serif;  --brand-weight: 700;  /* 설정 파일 [site] 가 덮어씀 */
+  --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-post: "Nanum Gothic", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131915; --panel: #1b231e; --ink: #e6ede7; --muted: #9db0a2; --line: #2c3830;
+    --leaf: #6cc28f; --leaf-soft: #1f3327; --soil: #c9a27c; --naver: #2fd47a;
+    --warn: #ff9b8f; --warn-bg: #3a1f1c; --exp: #f5b46a; --exp-bg: #3a2a16;
+    --photo: #9dbcff; --photo-bg: #1c2840; --link: #6fe0b0; --link-bg: #173328;
+    --todo: #7d8a81; --draft: #e0a84a; --pub: #6cc28f; --bar: #3d4d43;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131915; --panel: #1b231e; --ink: #e6ede7; --muted: #9db0a2; --line: #2c3830;
+  --leaf: #6cc28f; --leaf-soft: #1f3327; --soil: #c9a27c; --naver: #2fd47a;
+  --warn: #ff9b8f; --warn-bg: #3a1f1c; --exp: #f5b46a; --exp-bg: #3a2a16;
+  --photo: #9dbcff; --photo-bg: #1c2840; --link: #6fe0b0; --link-bg: #173328;
+  --todo: #7d8a81; --draft: #e0a84a; --pub: #6cc28f; --bar: #3d4d43;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--leaf); outline-offset: 2px; }
+
+/* 머리 */
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 18px; }
+.brand h1 { font-family: var(--font-brand); font-weight: var(--brand-weight); font-size: 34px; line-height: 1; margin: 0; color: var(--leaf); letter-spacing: 0.5px; }
+.brand p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px; font-size: 12px; min-width: 0; }
+.stat b { display: block; font-size: 13px; }
+.stat span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.note { font-size: 12.5px; color: var(--muted); background: var(--panel); border: 1px dashed var(--line); border-radius: var(--radius); padding: 8px 12px; margin-bottom: 14px; }
+.note[data-tone="warn"] { color: var(--warn); border-color: var(--warn); }
+
+/* 본문 2단 */
+.grid { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.panel-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.panel-h h2 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 0.3px; }
+
+/* 캘린더 */
+.filters { display: grid; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: transparent; border-radius: 99px; padding: 4px 10px; font-size: 12.5px; }
+.chip[aria-pressed="true"] { background: var(--leaf); border-color: var(--leaf); color: var(--panel); }
+.months { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.months button { min-width: 0; border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 3px 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+.months button[aria-pressed="true"] { border-color: var(--leaf); color: var(--leaf); font-weight: 600; }
+.months button.now::after { content: "•"; color: var(--naver); margin-left: 2px; }
+.list { list-style: none; margin: 0; padding: 6px; max-height: 70vh; overflow-y: auto; }
+@media (max-width: 860px) { .list { max-height: 50vh; } }
+.group-label { font-size: 11.5px; color: var(--muted); letter-spacing: 0.4px; padding: 8px 8px 4px; }
+.kw { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 8px; align-items: start; width: 100%; text-align: left; background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 8px; }
+.kw:hover { background: var(--leaf-soft); }
+.kw[aria-current="true"] { border-color: var(--leaf); background: var(--leaf-soft); }
+.kw .wk { font-size: 11px; color: var(--muted); padding-top: 2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kw .t { min-width: 0; }
+.kw .t b { display: block; font-size: 14px; font-weight: 600; }
+.kw .t small { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pill { font-size: 11px; border-radius: 99px; padding: 1px 7px; border: 1px solid currentColor; white-space: nowrap; }
+.pill.todo { color: var(--todo); } .pill.draft { color: var(--draft); } .pill.published { color: var(--pub); } .pill.skip { color: var(--todo); opacity: .6; }
+.prio-A { color: var(--soil); font-weight: 700; }
+.add-own { margin: 8px; width: calc(100% - 16px); border: 1px dashed var(--line); background: transparent; border-radius: 8px; padding: 8px; color: var(--leaf); font-weight: 600; }
+
+/* 작업대 */
+.desk { display: grid; gap: 14px; padding: 14px; }
+.kw-head .meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.kw-head .meta span { border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; }
+.kw-head h3 { margin: 0; font-size: 20px; text-wrap: balance; }
+.kw-head .idea { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
+label.lbl { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 4px; }
+.hint { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+textarea, input[type="text"], input[type="url"], select { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 8px 10px; }
+textarea { resize: vertical; min-height: 92px; line-height: 1.5; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.row > * { min-width: 0; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; font-size: 13px; }
+.seg button[aria-pressed="true"] { background: var(--leaf-soft); color: var(--leaf); font-weight: 600; }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 13.5px; }
+.btn.primary { background: var(--leaf); border-color: var(--leaf); color: var(--panel); }
+.btn.naver { background: var(--naver); border-color: var(--naver); color: #fff; }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn.ghost { background: transparent; }
+.status-line { font-size: 13px; color: var(--muted); min-height: 1.3em; }
+.status-line[data-tone="warn"] { color: var(--warn); }
+
+/* 초안 */
+.draft-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.counts { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+.counts span { border-radius: 6px; padding: 2px 8px; font-weight: 600; }
+.c-photo { background: var(--photo-bg); color: var(--photo); }
+.c-exp { background: var(--exp-bg); color: var(--exp); }
+.c-warn { background: var(--warn-bg); color: var(--warn); }
+.c-link { background: var(--link-bg); color: var(--link); }
+.c-ok { background: var(--leaf-soft); color: var(--leaf); }
+.seo { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13px; display: grid; gap: 4px; }
+.seo b { font-size: 12px; color: var(--muted); font-weight: 600; margin-right: 6px; }
+.checklist { margin: 0; padding-left: 18px; font-size: 13px; }
+
+/* 네이버 미리보기: 휴대폰 화면 폭 */
+.phone { background: var(--bg); border-radius: 14px; padding: 14px; }
+.post { background: #fff; color: #222; max-width: 460px; margin: 0 auto; border-radius: 10px; padding: 22px 18px 30px; font-family: var(--font-post); font-size: 15px; line-height: 1.85; box-shadow: 0 1px 2px rgba(0,0,0,.06); overflow-wrap: anywhere; }
+:root[data-theme="dark"] .post { box-shadow: none; }
+.post.center { text-align: center; }
+.post h1 { font-size: 21px; line-height: 1.4; margin: 0 0 18px; text-wrap: balance; }
+.post h2 { font-size: 18px; margin: 26px 0 10px; text-wrap: balance; }
+.post h3 { font-size: 16px; margin: 20px 0 8px; }
+.post p { margin: 0 0 14px; }
+.post ul, .post ol { margin: 0 0 14px; padding-left: 20px; }
+.post.center ul, .post.center ol { list-style-position: inside; padding-left: 0; }
+.post blockquote { margin: 0 0 14px; padding: 10px 14px; border-left: 3px solid #c9d6cc; background: #f5f8f5; color: #444; }
+.post.center blockquote { border-left: 0; border-top: 2px solid #c9d6cc; border-bottom: 2px solid #c9d6cc; }
+.post .tbl { overflow-x: auto; margin: 0 0 14px; }
+.post table { border-collapse: collapse; margin: 0 auto; font-size: 13.5px; line-height: 1.5; }
+.post th, .post td { border: 1px solid #ddd; padding: 6px 9px; }
+.post th { background: #f3f5f2; }
+.post a { color: #0b6bcb; }
+.post hr { border: 0; border-top: 1px solid #e3e3e3; margin: 18px 0; }
+.post .ph { display: inline; border-radius: 4px; padding: 1px 5px; font-weight: 700; }
+.post .ph-사진 { background: #e7efff; color: #1d4ed8; }
+.post .ph-경험 { background: #fff1e1; color: #a8550a; }
+.post .ph-확인 { background: #fdebe9; color: #b42318; }
+.post .ph-제휴 { background: #e3f7ee; color: #047857; }
+.post .stream-cursor { display: inline-block; width: 8px; height: 1em; background: #2f7a4c; vertical-align: text-bottom; animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .post .stream-cursor { animation: none; } }
+.empty { text-align: center; color: var(--muted); padding: 28px 12px; font-size: 13.5px; }
+.empty b { display: block; color: var(--ink); font-size: 15px; margin-bottom: 4px; }
+.editor textarea { min-height: 360px; font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 13px; }
+.publish-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.publish-row input { flex: 1 1 220px; }
+/* 검색 추이 */
+.kw .vol { grid-column: 2; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.kw .vol.low { color: var(--muted); font-style: italic; }
+.trend { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px 8px; position: relative; }
+.trend-h { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; font-size: 13px; }
+.trend-h span { color: var(--muted); font-size: 12px; }
+.trend svg { display: block; width: 100%; max-width: 520px; height: auto; margin: 6px 0 2px; overflow: visible; }
+.trend svg text { fill: var(--muted); font-size: 10px; font-family: var(--font-ui); font-variant-numeric: tabular-nums; }
+.trend svg text.on { fill: var(--ink); font-weight: 700; }
+.trend .tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--panel); font-size: 12px; padding: 3px 8px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -100%); }
+.trend-sum { margin: 0; font-size: 12.5px; color: var(--muted); }
+.trend-sum b { color: var(--ink); font-weight: 600; }
+.own-form { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; gap: 10px; background: var(--bg); }
+/* 블로그별 색·글꼴 ([site] colors) */
+:root { --font-brand: "Black Han Sans", "Nanum Gothic", sans-serif; --brand-weight: 400; --bg: #f2f4f7; --ink: #18202b; --muted: #5a6676; --line: #dce1e8; --leaf: #1f5fae; --leaf-soft: #e3ecf8; --soil: #8a5a1c; --bar: #c8d1dc; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #11151b; --panel: #19202a; --ink: #e5eaf1; --muted: #9eabbd; --line: #283140; --leaf: #79aaf0; --leaf-soft: #1b2a40; --soil: #d4a15e; --bar: #364254; } }
+:root[data-theme="dark"] { --bg: #11151b; --panel: #19202a; --ink: #e5eaf1; --muted: #9eabbd; --line: #283140; --leaf: #79aaf0; --leaf-soft: #1b2a40; --soil: #d4a15e; --bar: #364254; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>카쏘 글공방</h1>
+      <p>so의 정보 차고 · 키워드 고르기 → 메모 → Claude 초안 → 네이버에 붙여넣기</p>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+  <div class="note" id="note" hidden></div>
+
+  <main class="grid">
+    <section class="panel" aria-labelledby="cal-h">
+      <div class="panel-h"><h2 id="cal-h">키워드 캘린더</h2><span class="hint" id="cal-count"></span></div>
+      <div class="filters">
+        <div class="chips" id="topic-chips" role="group" aria-label="주제"></div>
+        <div class="months" id="months" role="group" aria-label="발행 달"></div>
+      </div>
+      <ul class="list" id="kw-list"></ul>
+      <button class="add-own" id="add-own" type="button">+ 캘린더에 없는 글 직접 쓰기</button>
+    </section>
+
+    <section class="panel" aria-labelledby="desk-h">
+      <div class="panel-h"><h2 id="desk-h">작업대</h2><span class="hint" id="save-state"></span></div>
+      <div class="desk" id="desk"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+const DATA = {"built":"2026-11-09","site":{"name":"카쏘 글공방","memoExample":"지난겨울 아침에 방전돼서 긴급출동 부름, 사진 2장 있음 / 배터리 교체 견적 받은 금액","ownExample":"타이어 공기압 경고등","ownTitleExample":"타이어 공기압 경고등 켜졌을 때 순서대로 할 일","blogId":"efgm3"},"topics":[{"key":"bmw","name":"BMW 관리·유지비 (Car Life)","label":"BMW 관리","persona":"자동차와 생활 정보를 정리하는 네이버 블로그 'so의 정보 차고'의 운영자 카쏘. BMW 관리·유지비와 제원을 공식 자료와 직접 확인한 내용으로 정리한다.","audience":"BMW 구매를 고민하거나 이미 타고 있는 30~50대 오너","disclaimer":"차량 정비·사양·세금 정보는 모델과 연식, 시점에 따라 다를 수 있습니다. 정확한 내용은 BMW 공식 서비스센터와 관련 기관에서 확인하세요.","voice":"carso"},{"key":"car_review","name":"차량 제원·리뷰 (Car Life)","label":"제원·리뷰","persona":"자동차와 생활 정보를 정리하는 네이버 블로그 'so의 정보 차고'의 운영자 카쏘. 국산차·수입차·전기차의 제원과 트림을 제조사 공식 자료 기준으로 풀어 쓰고, 어떤 사람에게 어울리는 차인지 정리한다.","audience":"차를 새로 사거나 바꾸려고 모델과 트림을 비교하는 30~50대","disclaimer":"제원·가격·트림 구성은 연식과 판매 시점에 따라 바뀔 수 있습니다. 구매 전 제조사 공식 자료와 전시장에서 최신 정보를 확인하세요.","voice":"info"},{"key":"life","name":"생활 꿀팁 (생활 정보)","label":"생활 꿀팁","persona":"자동차와 생활 정보를 정리하는 네이버 블로그 'so의 정보 차고'의 운영자 카쏘. 계절마다 돌아오는 집안일과 정리법을 오래 유지되는 기준 중심으로 알려 준다.","audience":"집안일과 정리를 덜 힘들게 하고 싶은 20~50대","disclaimer":"","voice":"carso"},{"key":"benefits","name":"혜택·지원금 (생활 정보)","label":"혜택·지원금","persona":"자동차와 생활 정보를 정리하는 네이버 블로그 'so의 정보 차고'의 운영자 카쏘. 세금 환급, 지원금, 복지 제도를 신청 시기와 조건 중심으로 정리한다.","audience":"받을 수 있는 지원금과 환급을 놓치고 싶지 않은 직장인·가정","disclaimer":"지원 제도의 대상·금액·신청 기간은 해마다 바뀔 수 있습니다. 신청 전에 정부24, 국세청 등 해당 기관의 공고를 꼭 확인하세요.","voice":"info"}],"keywords":[["BM-001","bmw",11,1,"계절관리","BMW 겨울 타이어","BMW 겨울 타이어 교체, 런플랫 윈터 타이어 고르는 법","구매",11,"A","쿠팡:타이어","todo"],["BM-002","bmw",11,1,"계절관리","BMW 배터리 방전","BMW 겨울철 배터리 방전, 원인과 점프 시동 방법","문제해결",12,"A","쿠팡:점프스타터","published"],["BM-003","bmw",11,1,"계절관리","BMW 겨울철 관리","BMW 겨울철 차량 관리 체크리스트","정보",12,"A","쿠팡:차량용품","todo"],["BM-004","bmw",11,2,"기능·사용법","BMW 열선 시트","BMW 열선 시트·열선 핸들 설정과 자동 켜짐","정보",12,"B","애드센스","todo"],["BM-005","bmw",11,2,"구매·리스","BMW 연말 프로모션","BMW 연말 프로모션, 할인 조건 확인하는 법","구매",11,"A","애드센스(금융)","todo"],["BM-006","bmw",11,3,"정비·소모품","BMW 워셔액","BMW 겨울용 워셔액 넣는 법과 결빙 예방","정보",1,"C","쿠팡:워셔액","todo"],["BM-007","bmw",11,3,"기능·사용법","My BMW 앱","My BMW 앱 기능 총정리, 원격 기능 활용법","정보",11,"A","애드센스","todo"],["BM-008","bmw",11,3,"정비·소모품","BMW 타이어 공기압 경고등","BMW 타이어 공기압 경고등 리셋 방법","문제해결",11,"A","쿠팡:공기주입기","todo"],["BM-009","bmw",11,4,"법인차","법인차 연두색 번호판","법인차 연두색 번호판 기준, BMW 모델별 해당 여부 확인","정보",11,"A","애드센스","todo"],["BM-010","bmw",11,4,"세금·보험","수입차 자동차보험","수입차 자동차보험료가 비싼 이유와 줄이는 법","비용",11,"A","애드센스(보험)","todo"],["BM-011","bmw",12,1,"구매·리스","BMW 재고차","BMW 연식 변경 시기와 재고차 구매 장단점","비교",12,"A","애드센스(금융)","todo"],["BM-012","bmw",12,1,"세금·보험","자동차세 12월","자동차세 12월 납부와 1월 연납 할인 비교","정보",12,"A","애드센스","todo"],["BM-013","bmw",12,1,"법인차","법인 리스 비용처리","법인 BMW 리스 비용처리, 업무용 승용차 한도 정리","정보",12,"A","애드센스(세무)","todo"],["BM-014","bmw",12,2,"정비·소모품","BMW 엔진오일 교체 주기","BMW 엔진오일 교체 주기, CBS 표시 읽는 법","정보",12,"A","애드센스","todo"],["BM-015","bmw",12,2,"계절관리","BMW 눈길 운전","BMW 후륜·xDrive 눈길 운전 요령","정보",12,"A","쿠팡:스노우체인","todo"],["BM-016","bmw",12,3,"기능·사용법","BMW 디지털 키","BMW 디지털 키 등록과 공유 방법","정보",12,"B","애드센스","todo"],["BM-017","bmw",12,3,"중고·감가","BMW 중고 감가","BMW 중고차 감가율, 모델별로 보는 법","정보",12,"A","애드센스(금융)","todo"],["BM-018","bmw",12,4,"모델비교","BMW 5시리즈 벤츠 E클래스","BMW 5시리즈 vs 벤츠 E클래스, 실제 오너가 고르는 기준","비교",12,"A","애드센스","todo"],["BM-019","bmw",12,4,"정비·소모품","BMW 서비스 인클루시브","BMW 서비스 인클루시브(BSI) 포함 항목과 연장 여부","정보",12,"A","애드센스","todo"],["BM-020","bmw",1,1,"세금·보험","자동차세 연납","자동차세 연납 신청 방법과 할인 확인하기","정보",1,"A","애드센스","todo"],["BM-021","bmw",1,1,"구매·리스","BMW 리스 할부 현금","BMW 리스 vs 할부 vs 현금 구매, 내 상황에 맞는 선택","비교",1,"A","애드센스(금융)","todo"],["BM-022","bmw",1,1,"구매·리스","BMW 구매 시기","BMW 사기 좋은 달은 언제일까","정보",1,"A","애드센스(금융)","todo"],["BM-023","bmw",1,2,"모델비교","BMW 520i 530i","BMW 520i vs 530i, 출력 차이를 체감할까","비교",1,"A","애드센스","todo"],["BM-024","bmw",1,2,"정비·소모품","BMW 경고등 종류","BMW 계기판 경고등 종류와 의미 총정리","정보",1,"A","애드센스","todo"],["BM-025","bmw",1,3,"법인차","여성 대표 법인차","여성 대표의 법인차 선택, BMW를 고른 이유","경험",1,"B","애드센스","todo"],["BM-026","bmw",1,3,"기능·사용법","BMW 무선 카플레이 끊김","BMW 무선 카플레이 연결 끊김 해결법","문제해결",1,"A","쿠팡:차량용품","todo"],["BM-027","bmw",1,4,"중고·감가","BMW 인증중고차","BMW 인증중고차(BPS) 장단점과 일반 중고차 비교","비교",1,"B","애드센스(금융)","todo"],["BM-028","bmw",1,4,"세금·보험","수입차 보험 갱신","수입차 자동차보험 갱신 전 비교해야 할 특약","정보",1,"B","애드센스(보험)","todo"],["BM-029","bmw",2,1,"모델비교","BMW X3 X5","BMW X3 vs X5, 가족 차로 고르는 기준","비교",2,"A","애드센스","todo"],["BM-030","bmw",2,1,"모델비교","BMW 3시리즈 5시리즈","BMW 3시리즈 vs 5시리즈, 첫 BMW로 무엇이 나을까","비교",2,"A","애드센스","todo"],["BM-031","bmw",2,2,"정비·소모품","BMW 브레이크 패드 교체","BMW 브레이크 패드 교체 시기와 경고등","정보",2,"A","애드센스","todo"],["BM-032","bmw",2,2,"구매·리스","BMW 리스 승계","BMW 리스 승계, 넘길 때와 받을 때 주의점","정보",2,"B","애드센스(금융)","todo"],["BM-033","bmw",2,3,"기능·사용법","BMW 드라이빙 모드","BMW 드라이빙 모드(컴포트·스포츠·에코 프로) 차이","정보",2,"B","애드센스","todo"],["BM-034","bmw",2,3,"정비·소모품","BMW 서비스센터 예약","BMW 서비스센터 예약 방법과 대기 줄이는 팁","정보",11,"B","애드센스","todo"],["BM-035","bmw",2,4,"법인차","업무용 승용차 운행기록부","업무용 승용차 운행기록부 작성법, 안 쓰면 생기는 일","정보",3,"A","애드센스(세무)","todo"],["BM-036","bmw",2,4,"모델비교","BMW 전기차 비교","BMW 전기차 i4·i5·iX 비교, 충전과 주행거리","비교",2,"B","애드센스","todo"],["BM-037","bmw",3,1,"계절관리","겨울 타이어 교체 시기","겨울 타이어에서 사계절 타이어로 교체 시기와 보관법","정보",3,"A","쿠팡:타이어보관커버","todo"],["BM-038","bmw",3,1,"계절관리","BMW 에어컨 필터","BMW 에어컨 필터(마이크로 필터) 교체 시기와 방법","정보",4,"A","쿠팡:에어컨필터","todo"],["BM-039","bmw",3,1,"정비·소모품","BMW 사설 정비","BMW 공식 서비스센터 vs 사설 정비소 비교","비교",3,"A","애드센스","todo"],["BM-040","bmw",3,2,"기능·사용법","BMW 주차 어시스턴트","BMW 주차 어시스턴트와 후진 어시스턴트 사용법","정보",3,"B","애드센스","todo"],["BM-041","bmw",3,2,"정비·소모품","BMW 블랙박스","BMW 블랙박스 설치, 상시 녹화와 배터리 보호 설정","구매",3,"A","쿠팡:블랙박스","todo"],["BM-042","bmw",3,3,"계절관리","황사철 세차","황사철 세차 방법, 유리막 코팅 차량 관리","정보",3,"B","쿠팡:세차용품","todo"],["BM-043","bmw",3,3,"구매·리스","BMW 시승 신청","BMW 시승 신청 방법과 시승 때 확인할 것","정보",3,"B","애드센스","todo"],["BM-044","bmw",3,4,"모델비교","BMW X1 X3","BMW X1 vs X3, 크기 차이와 실사용 비교","비교",3,"B","애드센스","todo"],["BM-045","bmw",3,4,"중고·감가","BMW 리스 만기","BMW 리스 만기 반납 vs 인수, 잔존가치 계산","비교",3,"A","애드센스(금융)","todo"],["BM-046","bmw",4,1,"정비·소모품","BMW 런플랫 타이어 교체 비용","BMW 런플랫 타이어 교체 비용과 일반 타이어 교체 가능 여부","비용",4,"A","쿠팡:타이어","todo"],["BM-047","bmw",4,1,"정비·소모품","BMW 휠 얼라인먼트","BMW 휠 얼라인먼트 점검 시기와 핸들 쏠림","문제해결",4,"B","애드센스","todo"],["BM-048","bmw",4,2,"기능·사용법","BMW 드라이빙 어시스턴트","BMW 드라이빙 어시스턴트 프로페셔널 기능과 고속도로 활용","정보",4,"A","애드센스","todo"],["BM-049","bmw",4,2,"구매·리스","BMW 옵션 패키지","BMW 옵션 패키지 고르는 법, 꼭 넣을 것과 빼도 될 것","구매",4,"A","애드센스","todo"],["BM-050","bmw",4,3,"계절관리","봄 드라이브 코스","BMW 오너 추천 봄 드라이브 코스","경험",4,"C","애드센스","todo"],["BM-051","bmw",4,3,"정비·소모품","신차 PPF 썬팅","신차 PPF와 썬팅, 순서와 비용","비용",4,"B","애드센스","todo"],["BM-052","bmw",4,4,"모델비교","BMW 5시리즈 i5","BMW 5시리즈 내연기관 vs i5 전기차, 유지비 비교","비교",4,"A","애드센스","todo"],["BM-053","bmw",4,4,"중고·감가","BMW 중고차 구매","BMW 중고차 살 때 꼭 확인할 정비 이력","정보",4,"A","애드센스(금융)","todo"],["BM-054","bmw",5,1,"기능·사용법","BMW 드라이빙 센터","BMW 드라이빙 센터 프로그램과 예약 후기","경험",5,"A","애드센스","todo"],["BM-055","bmw",5,1,"정비·소모품","BMW 냉각수 경고등","BMW 냉각수 경고등, 보충 방법과 점검이 필요한 신호","문제해결",12,"A","쿠팡:냉각수","todo"],["BM-056","bmw",5,2,"정비·소모품","BMW 와이퍼 교체","BMW 와이퍼 교체 방법, 서비스 포지션 설정","정보",12,"A","쿠팡:와이퍼","todo"],["BM-057","bmw",5,2,"기능·사용법","BMW iDrive 기능","BMW iDrive 숨은 기능 10가지","정보",5,"A","애드센스","todo"],["BM-058","bmw",5,3,"구매·리스","BMW 출고 대기","BMW 계약부터 출고까지 순서와 대기 기간 확인법","정보",5,"B","애드센스","todo"],["BM-059","bmw",5,3,"모델비교","BMW 1시리즈 2시리즈","BMW 1시리즈 vs 2시리즈 그란쿠페, 엔트리 BMW 비교","비교",5,"B","애드센스","todo"],["BM-060","bmw",5,4,"세금·보험","수입차 사고 처리","수입차 사고 처리, 렌트비와 수리비 분쟁 줄이는 법","문제해결",5,"A","애드센스(보험)","todo"],["BM-061","bmw",6,1,"세금·보험","자동차세 6월","자동차세 6월 납부, 배기량별 계산 확인하기","정보",6,"A","애드센스","todo"],["BM-062","bmw",6,1,"계절관리","장마철 차량 관리","장마철 BMW 관리, 와이퍼·발수코팅·습기 제거","정보",7,"A","쿠팡:발수코팅제","todo"],["BM-063","bmw",6,2,"계절관리","BMW 에어컨 냄새","BMW 에어컨 냄새 원인과 제거 방법","문제해결",4,"A","쿠팡:에어컨탈취제","todo"],["BM-064","bmw",6,2,"정비·소모품","BMW 오일 누유","BMW 오일 누유 점검, 바닥에 떨어진 액체 구별법","문제해결",6,"A","애드센스","todo"],["BM-065","bmw",6,3,"기능·사용법","BMW 오토 스타트 스톱","BMW 오토 홀드와 오토 스타트 스톱 끄는 법","정보",6,"A","애드센스","todo"],["BM-066","bmw",6,3,"중고·감가","BMW 내 차 팔기","BMW 내 차 팔기, 딜러 매입과 경매 비교","비교",6,"B","애드센스(금융)","todo"],["BM-067","bmw",6,4,"법인차","법인 명의 개인 명의","법인 명의 vs 개인 명의 BMW, 세금과 보험 비교","비교",6,"A","애드센스(세무)","todo"],["BM-068","bmw",6,4,"모델비교","BMW X5 벤츠 GLE","BMW X5 vs 벤츠 GLE, 대형 SUV 비교","비교",6,"B","애드센스","todo"],["BM-069","bmw",7,1,"계절관리","휴가 장거리 차량 점검","여름 휴가 장거리 운전 전 BMW 점검 리스트","정보",7,"A","쿠팡:차량용품","todo"],["BM-070","bmw",7,1,"계절관리","여름 차 실내 온도","여름 차 실내 온도 낮추는 법, 원격 공조 활용","정보",7,"B","쿠팡:햇빛가리개","todo"],["BM-071","bmw",7,2,"정비·소모품","BMW 배터리 교체","BMW 배터리 교체 비용과 배터리 등록이 필요한 이유","비용",12,"A","애드센스","todo"],["BM-072","bmw",7,2,"기능·사용법","BMW 실연비","BMW 실연비 기록, 연비 좋게 타는 습관","경험",7,"B","애드센스","todo"],["BM-073","bmw",7,3,"정비·소모품","BMW 소모품 교체 주기","BMW 소모품 교체 주기표, 주행거리별 정리","정보",7,"A","애드센스","todo"],["BM-074","bmw",7,3,"구매·리스","BMW 장기렌트 리스","BMW 장기렌트 vs 리스, 보험과 비용 차이","비교",7,"A","애드센스(금융)","todo"],["BM-075","bmw",7,4,"기능·사용법","BMW 소프트웨어 업데이트","BMW 무선 소프트웨어 업데이트(OTA) 하는 법","정보",9,"B","애드센스","todo"],["BM-076","bmw",7,4,"법인차","업무용 승용차 감가상각","업무용 승용차 감가상각, 연간 한도와 이월 처리","정보",7,"B","애드센스(세무)","todo"],["BM-077","bmw",8,1,"계절관리","침수차 보험 처리","폭우 때 침수 도로 대처와 침수차 보험 처리","문제해결",8,"A","애드센스(보험)","todo"],["BM-078","bmw",8,1,"정비·소모품","BMW 가죽 시트 관리","BMW 가죽 시트 관리와 실내 세차 방법","정보",8,"B","쿠팡:가죽클리너","todo"],["BM-079","bmw",8,2,"모델비교","BMW X3 제네시스 GV70","BMW X3 vs 제네시스 GV70, 중형 SUV 실사용 비교","비교",8,"A","애드센스","todo"],["BM-080","bmw",8,2,"기능·사용법","BMW 헤드업 디스플레이","BMW 헤드업 디스플레이 설정과 편광 선글라스 문제","정보",8,"C","애드센스","todo"],["BM-081","bmw",8,3,"정비·소모품","BMW 하체 소음","BMW 하체 소음 원인 구별, 정비소 가기 전 확인","문제해결",8,"B","애드센스","todo"],["BM-082","bmw",8,3,"중고·감가","BMW 보증 연장","BMW 보증 연장 프로그램, 가입할 가치가 있을까","정보",11,"B","애드센스(보험)","todo"],["BM-083","bmw",8,4,"구매·리스","BMW 신차 검수","BMW 신차 인수할 때 확인할 체크리스트","정보",8,"A","애드센스","todo"],["BM-084","bmw",9,1,"계절관리","추석 귀성길 차량 점검","추석 귀성길 전 차량 점검 5가지","정보",9,"A","쿠팡:차량용품","todo"],["BM-085","bmw",9,1,"모델비교","BMW 신형 출시","BMW 신형 출시 정보 정리, 기존 모델과 달라진 점","정보",9,"A","애드센스","todo"],["BM-086","bmw",9,1,"기능·사용법","BMW 내비게이션 업데이트","BMW 내비게이션 지도 업데이트 방법","정보",9,"B","애드센스","todo"],["BM-087","bmw",9,2,"정비·소모품","BMW 점화플러그","BMW 점화플러그 교체 주기와 엔진 떨림","문제해결",9,"B","애드센스","todo"],["BM-088","bmw",9,2,"세금·보험","수입차 보험 대물 한도","수입차 보험 대물 한도와 특약, 사고 나보고 알게 된 것","경험",9,"A","애드센스(보험)","todo"],["BM-089","bmw",9,3,"구매·리스","BMW 하반기 프로모션","BMW 하반기 프로모션 흐름과 협상 포인트","구매",9,"A","애드센스(금융)","todo"],["BM-090","bmw",9,3,"법인차","법인 리스 계약서","법인 리스 계약서 볼 때 확인할 항목","정보",9,"B","애드센스(금융)","todo"],["BM-091","bmw",9,4,"중고·감가","BMW 유지비","BMW 5년 유지비 실제 기록, 정비·보험·세금 합계","경험",9,"A","애드센스","todo"],["BM-092","bmw",9,4,"기능·사용법","BMW 음성 명령","BMW 인텔리전트 퍼스널 어시스턴트 음성 명령 정리","정보",9,"C","애드센스","todo"],["BM-093","bmw",10,1,"계절관리","가을 단풍 드라이브","BMW 오너 추천 가을 단풍 드라이브 코스","경험",10,"B","애드센스","todo"],["BM-094","bmw",10,1,"계절관리","겨울 전 차량 점검","겨울 오기 전 BMW 점검, 10월에 하면 좋은 것","정보",10,"A","쿠팡:차량용품","todo"],["BM-095","bmw",10,2,"정비·소모품","BMW 미션오일","BMW 미션오일 교체, 무교환이라는 말의 진실","정보",11,"B","애드센스","todo"],["BM-096","bmw",10,2,"정비·소모품","BMW 디퍼렌셜 오일","BMW xDrive 디퍼렌셜·트랜스퍼 오일 점검","정보",10,"C","애드센스","todo"],["BM-097","bmw",10,3,"모델비교","BMW 플러그인 하이브리드","BMW 플러그인 하이브리드, 충전 안 하면 손해일까","정보",10,"B","애드센스","todo"],["BM-098","bmw",10,3,"기능·사용법","BMW 오토 하이빔","BMW 오토 하이빔과 전조등 설정 방법","정보",10,"B","애드센스","todo"],["BM-099","bmw",10,4,"구매·리스","BMW 리스 견적 비교","BMW 리스 견적 비교하는 법, 같은 차도 조건이 다른 이유","비교",10,"A","애드센스(금융)","todo"],["BM-100","bmw",10,4,"세금·보험","수입차 정기검사","수입차 정기검사 시기와 미리 점검할 것","정보",10,"B","애드센스","todo"],["CR-001","car_review",11,1,"구매 가이드","사륜구동 SUV","사륜구동 SUV 고르는 기준, 눈길에서 차이 나는 것","비교",12,"A","애드포스트","todo"],["CR-002","car_review",11,1,"국산 세단","그랜저 하이브리드","그랜저 하이브리드 제원과 실연비, 가솔린과 비교","비교",11,"A","애드포스트","todo"],["CR-003","car_review",11,2,"국산 SUV","쏘렌토 하이브리드","쏘렌토 하이브리드 트림별 차이와 고르는 법","구매",11,"A","애드포스트","todo"],["CR-004","car_review",11,2,"국산 세단","제네시스 G80","제네시스 G80 제원 정리, 트림과 옵션 고르는 법","정보",11,"A","애드포스트","todo"],["CR-005","car_review",11,3,"국산 SUV","싼타페 하이브리드","싼타페 하이브리드 제원과 실내 공간","정보",11,"A","애드포스트","todo"],["CR-006","car_review",11,3,"전기차","아이오닉5 제원","아이오닉5 제원과 주행거리, 트림 고르는 법","정보",11,"B","애드포스트","todo"],["CR-007","car_review",11,4,"수입 세단","벤츠 E클래스 제원","벤츠 E클래스 제원과 트림 정리","정보",1,"B","애드포스트","todo"],["CR-008","car_review",11,4,"수입 SUV","BMW X5 제원","BMW X5 제원과 트림 정리, 가솔린·디젤·PHEV","정보",11,"B","애드포스트","todo"],["CR-009","car_review",12,1,"전기차","전기차 겨울 주행거리","전기차 겨울 주행거리, 얼마나 줄고 어떻게 아낄까","정보",12,"A","애드포스트","todo"],["CR-010","car_review",12,1,"구매 가이드","SUV 세단 차이","SUV vs 세단, 내 생활에 맞는 차 고르기","비교",12,"A","애드포스트","todo"],["CR-011","car_review",12,1,"미니밴·대형","카니발 하이브리드","카니발 하이브리드 제원, 9인승과 7인승 차이","비교",11,"A","애드포스트","todo"],["CR-012","car_review",12,2,"국산 SUV","팰리세이드 하이브리드","팰리세이드 하이브리드 제원과 연비 정리","정보",12,"A","애드포스트","todo"],["CR-013","car_review",12,2,"전기차","테슬라 모델Y","테슬라 모델Y 제원과 트림 차이, 국내 판매 기준","정보",1,"A","애드포스트","todo"],["CR-014","car_review",12,3,"경차·소형","경차 비교","경차 고르는 기준, 캐스퍼·레이·모닝 비교","비교",12,"A","애드포스트","todo"],["CR-015","car_review",12,3,"국산 SUV","제네시스 GV80","제네시스 GV80 제원, 2열·3열 공간 정리","정보",12,"B","애드포스트","todo"],["CR-016","car_review",12,4,"수입 SUV","벤츠 GLC","벤츠 GLC 제원과 트림 정리","정보",12,"B","애드포스트","todo"],["CR-017","car_review",12,4,"수입 세단","BMW 3시리즈 제원","BMW 3시리즈 제원 정리, 320i와 330i 차이","정보",12,"B","애드포스트","todo"],["CR-018","car_review",1,1,"구매 가이드","신차 구매 순서","신차 구매 순서, 견적부터 출고까지 한눈에","정보",1,"A","애드포스트","todo"],["CR-019","car_review",1,1,"구매 가이드","자동차 트림 고르는 법","자동차 트림 고르는 법, 꼭 필요한 옵션만 남기기","구매",1,"A","애드포스트","todo"],["CR-020","car_review",1,1,"국산 세단","아반떼 하이브리드","아반떼 하이브리드 제원과 실연비","정보",1,"A","애드포스트","todo"],["CR-021","car_review",1,2,"국산 SUV","투싼 하이브리드","투싼 하이브리드 제원, 스포티지와 비교","비교",1,"A","애드포스트","todo"],["CR-022","car_review",1,2,"국산 SUV","스포티지 하이브리드","스포티지 하이브리드 트림별 차이","구매",1,"A","애드포스트","todo"],["CR-079","car_review",1,2,"전기차","볼보 EX30","볼보 EX30 제원과 주행거리","정보",2,"B","애드포스트","todo"],["CR-023","car_review",1,3,"전기차","기아 EV3","기아 EV3 제원과 주행거리, 스탠다드와 롱레인지 차이","정보",6,"A","애드포스트","todo"],["CR-024","car_review",1,3,"국산 세단","쏘나타 하이브리드","쏘나타 하이브리드 제원과 트림 정리","정보",1,"B","애드포스트","todo"],["CR-025","car_review",1,4,"수입 SUV","BMW X3 제원","BMW X3 제원과 트림 정리","정보",1,"B","애드포스트","todo"],["CR-026","car_review",1,4,"경차·소형","레이 EV","레이 EV 제원과 주행거리, 출퇴근용으로 괜찮을까","정보",1,"B","애드포스트","todo"],["CR-027","car_review",2,1,"구매 가이드","하이브리드 전기차 비교","하이브리드 vs 전기차, 주행거리별 유지비 비교","비교",4,"A","애드포스트","todo"],["CR-028","car_review",2,1,"전기차","캐스퍼 일렉트릭","캐스퍼 일렉트릭 제원과 주행거리","정보",7,"A","애드포스트","todo"],["CR-029","car_review",2,2,"국산 SUV","제네시스 GV70 제원","제네시스 GV70 제원, 가솔린과 전동화 모델 차이","정보",3,"B","애드포스트","todo"],["CR-030","car_review",2,2,"경차·소형","셀토스 제원","셀토스 제원과 트렁크 크기","정보",2,"B","애드포스트","todo"],["CR-092","car_review",2,2,"전기차","제네시스 GV60","제네시스 GV60 제원과 주행거리","정보",3,"C","애드포스트","todo"],["CR-031","car_review",2,3,"경차·소형","코나 하이브리드","코나 하이브리드 제원과 연비","정보",2,"B","애드포스트","todo"],["CR-032","car_review",2,3,"전기차","아이오닉6 제원","아이오닉6 제원과 전비, 세단형 전기차 장단점","정보",2,"B","애드포스트","todo"],["CR-033","car_review",2,4,"전기차","BMW i4 제원","BMW i4 제원과 주행거리, 3시리즈와 다른 점","정보",2,"B","애드포스트","todo"],["CR-034","car_review",2,4,"수입 SUV","볼보 XC60","볼보 XC60 제원과 트림, 안전 사양 정리","정보",2,"B","애드포스트","todo"],["CR-035","car_review",3,1,"구매 가이드","사회초년생 첫차","사회초년생 첫차 고르는 기준, 예산별 정리","구매",3,"A","애드포스트","todo"],["CR-036","car_review",3,1,"구매 가이드","첫차 신차 중고차","첫차 신차 vs 중고차, 2~3년 타면 뭐가 나을까","비교",3,"A","애드포스트","todo"],["CR-037","car_review",3,1,"국산 세단","아반떼 트림 비교","아반떼 트림 비교, 첫차로 고를 옵션","구매",3,"A","애드포스트","todo"],["CR-038","car_review",3,2,"경차·소형","소형 SUV 비교","소형 SUV 비교, 코나·셀토스·트랙스 크로스오버","비교",3,"A","애드포스트","todo"],["CR-039","car_review",3,2,"전기차","전기차 충전 요금","전기차 충전 요금 정리, 완속과 급속 차이","비용",3,"A","애드포스트","todo"],["CR-040","car_review",3,3,"경차·소형","트랙스 크로스오버","트랙스 크로스오버 제원과 가격대, 가성비 따져 보기","정보",3,"B","애드포스트","todo"],["CR-042","car_review",3,4,"국산 SUV","토레스 제원","토레스 제원과 트림 정리","정보",3,"C","애드포스트","todo"],["CR-043","car_review",3,4,"경차·소형","미니 쿠퍼 제원","미니 쿠퍼 제원과 트림, 첫 수입차로 고민될 때","정보",3,"C","애드포스트","todo"],["CR-044","car_review",4,1,"미니밴·대형","차박 SUV","차박하기 좋은 SUV, 2열 폴딩과 평탄화 기준","비교",4,"A","쿠팡:차박매트","todo"],["CR-045","car_review",4,1,"미니밴·대형","카니발 제원","카니발 제원과 실내 공간, 2열 시트 구성","정보",4,"A","애드포스트","todo"],["CR-046","car_review",4,2,"구매 가이드","SUV 트렁크 크기 비교","SUV 트렁크 크기 비교, 리터 숫자 읽는 법","정보",4,"B","애드포스트","todo"],["CR-047","car_review",4,2,"미니밴·대형","스타리아 제원","스타리아 제원과 인승별 차이","정보",4,"B","애드포스트","todo"],["CR-048","car_review",4,3,"수입 세단","벤츠 C클래스","벤츠 C클래스 제원과 트림 정리","정보",4,"B","애드포스트","todo"],["CR-050","car_review",4,4,"수입 SUV","토요타 RAV4 하이브리드","토요타 RAV4 하이브리드 제원과 연비","정보",4,"B","애드포스트","todo"],["CR-051","car_review",4,4,"전기차","기아 EV9","기아 EV9 제원과 3열 공간","정보",4,"B","애드포스트","todo"],["CR-052","car_review",5,1,"구매 가이드","패밀리카","패밀리카 고르는 기준, 아이 수와 카시트로 따져 보기","구매",5,"A","애드포스트","todo"],["CR-053","car_review",5,1,"미니밴·대형","7인승 SUV","7인승 SUV 비교, 3열 실사용 공간 기준","비교",5,"A","애드포스트","todo"],["CR-054","car_review",5,2,"국산 SUV","쏘렌토 제원","쏘렌토 제원과 3열 공간, 6인승과 7인승","정보",5,"A","애드포스트","todo"],["CR-055","car_review",5,2,"구매 가이드","카시트 3개 차","카시트 3개 들어가는 차, 2열 폭으로 확인하기","정보",5,"B","쿠팡:카시트","todo"],["CR-056","car_review",5,3,"국산 SUV","싼타페 6인승","싼타페 6인승 7인승 차이, 2열 구조 비교","비교",5,"B","애드포스트","todo"],["CR-057","car_review",5,3,"국산 SUV","팰리세이드 3열","팰리세이드 3열 공간과 트렁크, 대형 SUV 실사용","정보",1,"B","애드포스트","todo"],["CR-058","car_review",5,4,"수입 SUV","볼보 XC90","볼보 XC90 제원과 7인승 구성","정보",7,"C","애드포스트","todo"],["CR-059","car_review",5,4,"수입 SUV","BMW X7 제원","BMW X7 제원과 3열 공간","정보",5,"C","애드포스트","todo"],["CR-060","car_review",6,1,"구매 가이드","자동차 제원표 보는 법","자동차 제원표 보는 법, 출력·토크·전장 숫자 읽기","정보",6,"A","애드포스트","todo"],["CR-061","car_review",6,1,"전기차","전기차 장거리 여행","전기차로 장거리 여행, 충전 계획 세우는 법","정보",7,"A","애드포스트","todo"],["CR-062","car_review",6,1,"구매 가이드","하이브리드 연비 비교","연비 좋은 하이브리드, 공인연비로 비교하는 법","비교",6,"A","애드포스트","todo"],["CR-063","car_review",6,2,"구매 가이드","공인연비 실연비","공인연비와 실연비 차이, 왜 다르게 나올까","정보",6,"B","애드포스트","todo"],["CR-064","car_review",6,2,"고성능","아이오닉5 N","아이오닉5 N 제원, 고성능 전기차는 뭐가 다를까","정보",7,"B","애드포스트","todo"],["CR-083","car_review",6,2,"전기차","폴스타 4","폴스타 4 제원과 트림","정보",7,"C","애드포스트","todo"],["CR-065","car_review",6,3,"고성능","컨버터블 차","컨버터블 차 종류와 지붕 방식 차이","정보",6,"C","애드포스트","todo"],["CR-066","car_review",6,3,"고성능","BMW Z4 제원","BMW Z4 제원과 실사용 장단점","정보",6,"C","애드포스트","todo"],["CR-067","car_review",6,4,"국산 세단","제네시스 G90","제네시스 G90 제원과 트림 정리","정보",6,"C","애드포스트","todo"],["CR-068","car_review",6,4,"수입 세단","벤츠 S클래스 제원","벤츠 S클래스 제원과 트림 정리","정보",6,"C","애드포스트","todo"],["CR-069","car_review",7,1,"구매 가이드","렌터카 차종","여름 휴가 렌터카, 인원별 차종 고르는 법","구매",7,"A","애드포스트","todo"],["CR-070","car_review",7,1,"국산 세단","그랜저 트림","그랜저 트림 비교, 옵션은 어디까지 넣을까","구매",7,"B","애드포스트","todo"],["CR-071","car_review",7,2,"국산 세단","K8 하이브리드","K8 하이브리드 제원과 그랜저 비교","비교",7,"B","애드포스트","todo"],["CR-072","car_review",7,2,"국산 세단","K5 제원","K5 제원과 트림, 쏘나타와 비교","비교",7,"B","애드포스트","todo"],["CR-073","car_review",7,3,"고성능","왜건 차","왜건 차종 정리, SUV 대신 왜건을 고르는 이유","비교",7,"B","애드포스트","todo"],["CR-074","car_review",7,3,"수입 SUV","오프로드 SUV","오프로드 SUV 종류, 사륜 방식 차이 정리","정보",7,"C","애드포스트","todo"],["CR-075","car_review",7,4,"수입 SUV","지프 랭글러 제원","지프 랭글러 제원과 실사용 장단점","정보",7,"C","애드포스트","todo"],["CR-076","car_review",7,4,"수입 SUV","랜드로버 디펜더","랜드로버 디펜더 제원과 트림","정보",7,"C","애드포스트","todo"],["CR-077","car_review",8,1,"전기차","전기 SUV 비교","전기 SUV 비교, 주행거리와 충전 속도로 보기","비교",8,"A","애드포스트","todo"],["CR-078","car_review",8,1,"전기차","테슬라 모델3","테슬라 모델3 제원과 트림 차이","정보",1,"B","애드포스트","todo"],["CR-041","car_review",8,2,"수입 SUV","BMW X1 제원","BMW X1 제원과 트렁크 크기, 첫 수입차로 어떨까","정보",9,"B","애드포스트","todo"],["CR-080","car_review",8,2,"전기차","BYD 아토3","BYD 아토3 제원과 주행거리","정보",1,"B","애드포스트","todo"],["CR-081","car_review",8,3,"고성능","BMW M340i","BMW M340i 제원, M3와 무엇이 다를까","비교",8,"C","애드포스트","todo"],["CR-082","car_review",8,3,"전기차","벤츠 EQE","벤츠 EQE 제원과 주행거리","정보",8,"C","애드포스트","todo"],["CR-084","car_review",8,4,"고성능","BMW M3 투어링","BMW M3 Touring G81 제원부터 성능까지, 가족용과 스포츠카를 한 대로","정보",8,"B","애드포스트","published"],["CR-085","car_review",9,1,"구매 가이드","장거리 편한 차","장거리 운전 편한 차, 시트·소음·주행 보조로 고르기","구매",9,"B","애드포스트","todo"],["CR-086","car_review",9,1,"구매 가이드","ADAS 기능","차로 유지 보조·스마트 크루즈, 브랜드별 이름 정리","정보",10,"B","애드포스트","todo"],["CR-049","car_review",9,2,"수입 세단","렉서스 ES","렉서스 ES 제원과 하이브리드 연비","정보",10,"B","애드포스트","todo"],["CR-087","car_review",9,2,"경차·소형","모닝 제원","모닝 제원과 트림, 경차 유지비","정보",9,"B","애드포스트","todo"],["CR-088","car_review",9,2,"경차·소형","캐스퍼 제원","캐스퍼 제원과 트렁크, 경차 혜택까지","정보",8,"B","애드포스트","todo"],["CR-089","car_review",9,3,"경차·소형","니로 하이브리드","니로 하이브리드 제원과 연비","정보",9,"B","애드포스트","todo"],["CR-090","car_review",9,3,"국산 SUV","추석 귀성 SUV 연비","명절 귀성길 SUV 연비, 짐 싣고 달리면 얼마나 차이 날까","정보",9,"C","애드포스트","todo"],["CR-091","car_review",9,4,"수입 SUV","BMW X6 제원","BMW X6 제원, X5와 다른 점","비교",9,"C","애드포스트","todo"],["CR-093","car_review",10,1,"구매 가이드","수입차 국산차 유지비","수입차 vs 국산차, 5년 유지비 따져 보기","비교",10,"A","애드포스트","todo"],["CR-094","car_review",10,1,"구매 가이드","자동차 연식변경","연식변경 차, 기다릴까 지금 살까","구매",10,"B","애드포스트","todo"],["CR-095","car_review",10,2,"구매 가이드","디젤차 구매","디젤차 지금 사도 될까, 장단점 정리","정보",10,"B","애드포스트","todo"],["CR-096","car_review",10,2,"구매 가이드","LPG 차량","LPG 차 장단점과 차종 정리","정보",10,"B","애드포스트","todo"],["CR-097","car_review",10,3,"구매 가이드","PHEV 차종","플러그인 하이브리드(PHEV) 차종과 장단점","정보",10,"B","애드포스트","todo"],["CR-098","car_review",10,3,"수입 세단","아우디 A6","아우디 A6 제원과 트림","정보",10,"C","애드포스트","todo"],["CR-099","car_review",10,4,"국산 세단","제네시스 G70","제네시스 G70 제원, 스포츠 세단으로 볼 때","정보",10,"C","애드포스트","todo"],["CR-100","car_review",10,4,"수입 SUV","렉서스 RX","렉서스 RX 제원과 하이브리드 트림","정보",10,"C","애드포스트","todo"],["LT-001","life",11,1,"옷·세탁","패딩 세탁","패딩 세탁법, 집에서 빨아도 될까","정보",1,"A","애드포스트","todo"],["LT-002","life",11,1,"난방·에너지","창문 단열 뽁뽁이","창문 단열 뽁뽁이 붙이는 법과 효과","정보",11,"A","쿠팡:단열시트","todo"],["LT-003","life",11,1,"집안 관리","수도 동파 예방","수도 동파 예방법과 얼었을 때 대처","문제해결",12,"A","애드포스트","todo"],["LT-005","life",11,2,"옷·세탁","니트 보풀 제거","니트 보풀 제거와 보관법","정보",11,"B","애드포스트","todo"],["LT-042","life",11,2,"생활 행정","입주 청소","입주 청소 직접 할 때 순서","정보",12,"B","애드포스트","todo"],["LT-006","life",11,3,"난방·에너지","전기요 전기장판 차이","전기요 vs 전기장판, 전기요금과 안전 비교","비교",11,"B","쿠팡:전기요","todo"],["LT-007","life",11,3,"난방·에너지","원룸 외풍","원룸 외풍 막는 법, 창문·문틈부터","문제해결",11,"B","쿠팡:문풍지","todo"],["LT-008","life",11,4,"돈 관리","김장 비용 줄이기","김장 비용 줄이는 법, 절임배추와 양념 계산","비용",11,"B","애드포스트","todo"],["LT-009","life",11,4,"생활 행정","택배 분실","택배 분실됐을 때 처리 순서","문제해결",11,"C","애드포스트","todo"],["LT-011","life",12,1,"난방·에너지","보일러 외출 모드","보일러 외출 모드 vs 끄기, 뭐가 더 아낄까","비교",12,"A","애드포스트","todo"],["LT-012","life",12,1,"집안 관리","결로 방지","겨울 창문 결로 줄이는 법","문제해결",12,"A","애드포스트","todo"],["LT-013","life",12,2,"집안 관리","가습기 청소","가습기 청소 방법, 물때 없이 쓰는 법","정보",12,"A","애드포스트","todo"],["LT-015","life",12,3,"정리·수납","연말 대청소","연말 대청소 순서, 하루에 끝내는 계획","정보",12,"B","애드포스트","todo"],["LT-016","life",12,3,"정리·수납","냉장고 정리","냉장고 정리법, 칸별로 자리 정하기","정보",12,"B","쿠팡:냉장고정리용기","todo"],["LT-017","life",12,4,"디지털","연말 사진 정리","한 해 사진 연말에 정리하는 법, 앨범 하나로 남기기","정보",12,"C","애드포스트","todo"],["LT-018","life",12,4,"정리·수납","크리스마스 트리 보관","크리스마스 트리와 장식 보관법","정보",12,"C","애드포스트","todo"],["LT-021","life",1,1,"디지털","휴대폰 저장공간 정리","휴대폰 저장공간 정리, 사진 말고도 지울 것","정보",1,"A","애드포스트","todo"],["LT-022","life",1,2,"집안 관리","세탁기 통 청소","세탁기 통 청소 방법, 냄새 잡는 주기","정보",1,"A","애드포스트","todo"],["LT-023","life",1,2,"집안 관리","벽지 곰팡이 제거","벽지 곰팡이 제거와 재발 막는 법","문제해결",1,"A","애드포스트","todo"],["LT-024","life",1,3,"돈 관리","가계부 쓰는 법","가계부 꾸준히 쓰는 법, 항목 줄이기부터","정보",1,"A","애드포스트","todo"],["LT-025","life",1,3,"집안 관리","정전기 없애는 법","겨울 정전기 줄이는 법","문제해결",1,"B","애드포스트","todo"],["LT-027","life",1,4,"정리·수납","서랍 정리","서랍 정리, 칸 나누는 법","정보",1,"C","애드포스트","todo"],["LT-028","life",2,1,"음식·보관","명절 음식 보관","명절 남은 음식 냉동 보관법","정보",2,"A","애드포스트","todo"],["LT-029","life",2,1,"생활 행정","이사 체크리스트","이사 준비 체크리스트, 한 달 전부터 순서대로","정보",2,"A","애드포스트","todo"],["LT-030","life",2,1,"음식·보관","설 선물 보관","설 선물 과일·고기 보관법","정보",2,"B","애드포스트","todo"],["LT-031","life",2,2,"난방·에너지","대기전력 줄이기","대기전력 줄이는 법, 멀티탭만 바꿔도","정보",2,"B","쿠팡:개별스위치멀티탭","todo"],["LT-032","life",2,2,"디지털","카톡 용량 정리","카카오톡 용량 줄이는 법, 대화방 사진 정리","정보",2,"B","애드포스트","todo"],["LT-033","life",2,3,"옷·세탁","운동화 세탁","운동화 세탁법, 누렇게 변하지 않게","정보",5,"B","애드포스트","todo"],["LT-035","life",2,4,"생활 행정","이삿짐센터 견적","이삿짐센터 견적 비교, 추가 요금 안 나오게","비교",2,"A","애드포스트","todo"],["LT-036","life",2,4,"디지털","비밀번호 관리","비밀번호 관리법, 외우지 않고 안전하게","정보",2,"C","애드포스트","todo"],["LT-037","life",3,1,"생활 행정","전입신고 온라인","전입신고 온라인으로 하는 법","정보",2,"A","애드포스트","todo"],["LT-038","life",3,1,"생활 행정","확정일자","확정일자 받는 법과 전입신고와의 차이","정보",2,"A","애드포스트","todo"],["LT-039","life",3,2,"집안 관리","봄맞이 대청소","봄맞이 대청소 체크리스트","정보",3,"A","애드포스트","todo"],["LT-040","life",3,2,"집안 관리","미세먼지 환기","미세먼지 많은 날 환기하는 법","정보",3,"A","애드포스트","todo"],["LT-041","life",3,3,"집안 관리","공기청정기 필터 교체","공기청정기 필터 교체 주기와 청소","정보",3,"B","쿠팡:공기청정기필터","todo"],["LT-043","life",3,4,"집안 관리","커튼 세탁","커튼 세탁법, 떼지 않고 관리하는 법","정보",3,"B","애드포스트","todo"],["LT-044","life",3,4,"정리·수납","신발장 정리","신발장 정리와 냄새 잡는 법","정보",3,"C","애드포스트","todo"],["LT-045","life",4,1,"옷·세탁","겨울옷 보관","겨울옷 정리, 패딩·코트 보관법","정보",4,"A","애드포스트","todo"],["LT-046","life",4,1,"옷·세탁","봄 이불 교체","봄 이불 바꾸기 전 세탁·보관 순서","정보",4,"B","애드포스트","todo"],["LT-004","life",4,2,"옷·세탁","겨울 이불 세탁","두꺼운 겨울 이불 세탁과 보관법","정보",5,"B","애드포스트","todo"],["LT-047","life",4,2,"집안 관리","주방 후드 청소","주방 후드 기름때 청소법","정보",8,"B","애드포스트","todo"],["LT-048","life",4,2,"집안 관리","싱크대 배수구 냄새","싱크대 배수구 냄새 잡는 법","문제해결",7,"B","애드포스트","todo"],["LT-089","life",4,2,"집안 관리","창틀 청소","창틀 레일 청소법","정보",5,"B","애드포스트","todo"],["LT-049","life",4,3,"집안 관리","베란다 청소","베란다 청소와 물청소 주의점","정보",5,"B","애드포스트","todo"],["LT-050","life",4,3,"집안 관리","방충망 청소","방충망 청소와 구멍 보수","정보",5,"B","쿠팡:방충망보수테이프","todo"],["LT-051","life",4,4,"디지털","택배 송장 개인정보","택배 송장 개인정보 지우는 법","정보",4,"C","애드포스트","todo"],["LT-052","life",4,4,"음식·보관","식재료 소분 냉동","식재료 소분 냉동법, 장 본 날 30분 정리","정보",4,"C","애드포스트","todo"],["LT-053","life",5,1,"집안 관리","에어컨 청소","에어컨 청소 직접 하는 법, 필터부터 냄새까지","정보",5,"A","애드포스트","todo"],["LT-054","life",5,1,"집안 관리","선풍기 청소","선풍기 분해 청소법","정보",6,"B","애드포스트","todo"],["LT-055","life",5,2,"옷·세탁","여름 이불 소재","여름 이불 소재 비교, 인견·리넨·면","비교",6,"B","쿠팡:여름이불","todo"],["LT-056","life",5,2,"집안 관리","냉장고 냄새","냉장고 냄새 없애는 법","문제해결",5,"B","애드포스트","todo"],["LT-074","life",5,2,"음식·보관","수박 보관법","자른 수박 보관법","정보",6,"B","애드포스트","todo"],["LT-078","life",5,2,"집안 관리","바퀴벌레 없애는 법","바퀴벌레 없애는 법과 예방","문제해결",6,"A","애드포스트","todo"],["LT-057","life",5,3,"옷·세탁","흰 옷 누런 얼룩","흰 옷 누런 얼룩 지우는 법","문제해결",6,"B","애드포스트","todo"],["LT-058","life",5,3,"돈 관리","가정의 달 지출","가정의 달 지출 계획, 선물·외식 예산 나누기","정보",5,"C","애드포스트","todo"],["LT-059","life",5,4,"디지털","휴대폰 배터리 오래 쓰기","휴대폰 배터리 오래 쓰는 충전 습관","정보",5,"C","애드포스트","todo"],["LT-060","life",5,4,"음식·보관","도시락 보관","봄나들이 도시락 상하지 않게 싸는 법","정보",5,"C","애드포스트","todo"],["LT-061","life",6,1,"집안 관리","제습기 고르는 법","제습기 고르는 법과 전기요금","구매",6,"A","쿠팡:제습기","todo"],["LT-062","life",6,1,"집안 관리","초파리 없애는 법","초파리 없애는 법, 생기는 곳부터 막기","문제해결",7,"A","애드포스트","todo"],["LT-014","life",6,2,"집안 관리","실내 적정 습도","겨울 실내 적정 습도와 맞추는 법","정보",7,"B","애드포스트","todo"],["LT-063","life",6,2,"옷·세탁","장마철 빨래 냄새","장마철 빨래 냄새 없애는 법","문제해결",7,"A","애드포스트","todo"],["LT-064","life",6,2,"옷·세탁","옷장 곰팡이","장마철 옷장 곰팡이 막는 법","문제해결",8,"A","쿠팡:옷장제습제","todo"],["LT-080","life",6,2,"난방·에너지","에어컨 송풍","에어컨 끄기 전 송풍, 몇 분이면 될까","정보",7,"B","애드포스트","todo"],["LT-065","life",6,3,"난방·에너지","에어컨 제습 냉방 차이","에어컨 제습 모드 vs 냉방 모드","비교",8,"A","애드포스트","todo"],["LT-066","life",6,3,"집안 관리","모기 퇴치","모기 덜 들어오게 하는 법","문제해결",6,"B","애드포스트","todo"],["LT-067","life",6,4,"옷·세탁","장마철 신발 관리","젖은 신발 빨리 말리는 법","문제해결",7,"C","애드포스트","todo"],["LT-068","life",6,4,"음식·보관","음식물 쓰레기 냄새","여름 음식물 쓰레기 냄새 줄이는 법","문제해결",7,"B","애드포스트","todo"],["LT-069","life",7,1,"난방·에너지","에어컨 전기요금","에어컨 전기요금 아끼는 사용법","정보",7,"A","애드포스트","todo"],["LT-070","life",7,1,"난방·에너지","전기요금 누진제","여름 전기요금 누진제 구간 보는 법","정보",7,"A","애드포스트","todo"],["LT-026","life",7,2,"집안 관리","욕실 실리콘 곰팡이","욕실 실리콘 곰팡이 제거법","문제해결",8,"B","애드포스트","todo"],["LT-071","life",7,2,"생활 행정","휴가 전 집 점검","휴가 떠나기 전 집 점검 리스트","정보",7,"B","애드포스트","todo"],["LT-072","life",7,2,"정리·수납","여행 짐 싸기","여행 짐 싸기 체크리스트, 가방 하나로","정보",7,"B","애드포스트","todo"],["LT-073","life",7,3,"음식·보관","아이스팩 버리는 법","아이스팩 버리는 법과 재사용","정보",9,"B","애드포스트","todo"],["LT-075","life",7,4,"옷·세탁","땀 얼룩 제거","흰 옷 겨드랑이 땀 얼룩 지우는 법","문제해결",9,"A","애드포스트","todo"],["LT-076","life",7,4,"집안 관리","샤워기 필터 교체","샤워기 필터 교체 주기","정보",4,"C","쿠팡:샤워기필터","todo"],["LT-077","life",8,1,"집안 관리","태풍 대비","태풍 대비 집 점검, 창문·베란다·배수구","정보",8,"A","애드포스트","todo"],["LT-020","life",8,2,"디지털","구독 서비스 정리","구독 서비스 정리, 새는 돈 찾는 법","정보",9,"A","애드포스트","todo"],["LT-034","life",8,2,"돈 관리","통신비 절약","통신비 줄이는 법, 요금제와 결합 할인 점검","정보",9,"B","애드포스트","todo"],["LT-079","life",8,2,"옷·세탁","여름 옷 보관","가을이 오기 전 여름 옷 정리, 다시 꺼내 입기 편하게 보관하는 방법","정보",9,"A","애드포스트","published"],["LT-081","life",8,3,"집안 관리","여름 침구 세탁","여름 침구 세탁 주기와 진드기 관리","정보",8,"C","애드포스트","todo"],["LT-082","life",8,3,"돈 관리","관리비 줄이기","아파트 관리비 고지서 보는 법과 줄일 항목","정보",8,"B","애드포스트","todo"],["LT-083","life",8,4,"디지털","스마트폰 사진 정리","스마트폰 사진이 너무 많을 때, 오래 유지되는 정리 기준 만들기","정보",8,"A","애드포스트","published"],["LT-084","life",8,4,"정리·수납","새학기 책상 정리","새학기 책상 정리, 아이가 스스로 치우게","정보",8,"C","애드포스트","todo"],["LT-085","life",9,1,"정리·수납","환절기 옷장 정리","환절기 옷장 정리, 두 계절 옷 함께 두는 법","정보",9,"A","애드포스트","todo"],["LT-086","life",9,1,"음식·보관","추석 장보기 목록","추석 장보기 목록과 예산 짜기","정보",9,"B","애드포스트","todo"],["LT-019","life",9,2,"정리·수납","옷장 정리법","옷장 정리법, 다시 어질러지지 않는 기준","정보",10,"A","애드포스트","todo"],["LT-087","life",9,2,"음식·보관","폐식용유 버리는 법","전 부치고 남은 폐식용유 버리는 법","정보",10,"B","애드포스트","todo"],["LT-088","life",9,2,"옷·세탁","가을 이불 꺼내기","가을 이불 꺼낼 때 냄새·진드기 관리","정보",9,"B","애드포스트","todo"],["LT-090","life",9,3,"음식·보관","명절 선물 세트 정리","추석 선물 세트 보관과 유통기한 정리","정보",9,"C","애드포스트","todo"],["LT-091","life",9,4,"디지털","사진 백업 방법","휴대폰 사진 백업 방법, 클라우드와 외장 저장","정보",9,"B","애드포스트","todo"],["LT-092","life",9,4,"생활 행정","주소 변경 한 번에","이사 후 주소 변경 한 번에 하는 법","정보",9,"C","애드포스트","todo"],["LT-093","life",10,1,"난방·에너지","보일러 점검","보일러 켜기 전 점검할 것","정보",12,"A","애드포스트","todo"],["LT-094","life",10,1,"난방·에너지","난방텐트","난방텐트 고르는 법과 효과","구매",11,"B","쿠팡:난방텐트","todo"],["LT-010","life",10,2,"난방·에너지","난방비 절약","난방비 아끼는 법, 보일러 설정부터 단열까지","정보",11,"A","애드포스트","todo"],["LT-095","life",10,2,"난방·에너지","온수매트 전기매트","온수매트 vs 전기매트 비교","비교",10,"B","쿠팡:온수매트","todo"],["LT-096","life",10,2,"옷·세탁","가을 옷 세탁","가을 니트·카디건 세탁 라벨 보는 법","정보",10,"C","애드포스트","todo"],["LT-097","life",10,3,"집안 관리","가을 환기","환절기 실내 환기 시간 정하는 법","정보",10,"C","애드포스트","todo"],["LT-098","life",10,3,"정리·수납","선풍기 보관","선풍기·여름 가전 보관법","정보",10,"C","애드포스트","todo"],["LT-099","life",10,4,"돈 관리","연말 지출 점검","연말 전에 지출 점검하는 법, 카드 내역 3개월치","정보",10,"B","애드포스트","todo"],["LT-100","life",10,4,"디지털","중고거래 사진","중고거래 잘 팔리는 사진 찍는 법","정보",10,"C","애드포스트","todo"],["BF-001","benefits",11,1,"교육","국가장학금 신청","국가장학금 1차 신청 기간과 준비 서류","정보",12,"A","애드포스트","todo"],["BF-002","benefits",11,1,"건강·의료","국가건강검진","국가건강검진 대상 조회와 연말 전 받는 법","정보",12,"A","애드포스트","todo"],["BF-003","benefits",11,1,"세금·환급","연말정산 미리보기","연말정산 미리보기로 남은 두 달 소비 계획 세우기","정보",12,"A","애드포스트(금융)","todo"],["BF-005","benefits",11,2,"세금·환급","종합부동산세","종합부동산세 고지서 보는 법과 납부 기간","정보",11,"B","애드포스트(금융)","todo"],["BF-008","benefits",11,4,"자동차","자동차 보험 할인 특약","자동차 보험 할인 특약 정리, 마일리지·블랙박스","정보",11,"B","애드포스트(보험)","todo"],["BF-009","benefits",11,4,"일자리","국민내일배움카드","국민내일배움카드 발급과 쓸 수 있는 과정","정보",1,"B","애드포스트","todo"],["BF-010","benefits",12,1,"세금·환급","연말정산 준비","연말정산 준비, 12월에 미리 챙길 공제 항목","정보",12,"A","애드포스트(금융)","todo"],["BF-011","benefits",12,1,"출산·육아","부모급여","부모급여 금액과 신청 방법","정보",1,"A","애드포스트","todo"],["BF-012","benefits",12,1,"출산·육아","아동수당","아동수당 대상과 신청 방법","정보",1,"B","애드포스트","todo"],["BF-013","benefits",12,2,"출산·육아","첫만남이용권","첫만남이용권 금액과 사용처","정보",12,"B","애드포스트","todo"],["BF-033","benefits",12,2,"자동차","경차 유류세 환급","경차 유류세 환급 카드 신청과 조건","정보",1,"B","애드포스트","todo"],["BF-065","benefits",12,2,"연금","기초연금 조건","기초연금 수급 조건과 신청 시기","정보",1,"B","애드포스트(금융)","todo"],["BF-066","benefits",12,2,"일자리","실업급여 신청 방법","실업급여 신청 방법, 구직활동 인정 기준","정보",1,"A","애드포스트","todo"],["BF-015","benefits",12,3,"자동차","전기차 보조금","전기차 보조금, 국비·지방비 확인하는 법","정보",1,"A","애드포스트","todo"],["BF-016","benefits",12,3,"연금","국민연금 추납","국민연금 추납, 언제 하면 이득일까","정보",12,"B","애드포스트(금융)","todo"],["BF-017","benefits",12,4,"세금·환급","중소기업 취업자 소득세 감면","중소기업 취업자 소득세 감면 조건과 신청","정보",1,"B","애드포스트(금융)","todo"],["BF-018","benefits",12,4,"생활 지원","긴급복지 지원","긴급복지 지원 대상과 신청 방법","정보",12,"C","애드포스트","todo"],["BF-019","benefits",1,1,"세금·환급","연말정산 간소화","연말정산 간소화 서비스 이용 방법, 순서대로","정보",1,"A","애드포스트(금융)","todo"],["BF-020","benefits",1,1,"세금·환급","연말정산 월세 공제","연말정산 월세 세액공제 조건과 서류","정보",1,"A","애드포스트(금융)","todo"],["BF-021","benefits",1,1,"세금·환급","연말정산 의료비 공제","연말정산 의료비 공제, 빠지기 쉬운 항목","정보",1,"A","애드포스트(금융)","todo"],["BF-022","benefits",1,2,"세금·환급","연말정산 부양가족","연말정산 부양가족 공제 조건 정리","정보",1,"A","애드포스트(금융)","todo"],["BF-023","benefits",1,2,"세금·환급","연말정산 카드 공제","연말정산 신용카드·체크카드 공제율 차이","비교",1,"A","애드포스트(금융)","todo"],["BF-057","benefits",1,2,"교육","국가장학금 2차","국가장학금 2차 신청, 1차 놓쳤을 때","정보",2,"B","애드포스트","todo"],["BF-074","benefits",1,2,"주거","청년 주택드림 청약통장","청년 주택드림 청약통장 조건과 혜택","정보",2,"B","애드포스트(금융)","todo"],["BF-024","benefits",1,3,"세금·환급","기부금 공제","기부금 세액공제 받는 법과 영수증 챙기기","정보",1,"B","애드포스트(금융)","todo"],["BF-025","benefits",1,3,"자동차","노후 경유차 조기폐차","노후 경유차 조기폐차 지원금 조건과 신청","정보",3,"B","애드포스트","todo"],["BF-026","benefits",1,4,"교통","K-패스","K-패스 대중교통비 환급 받는 법","정보",4,"A","애드포스트","todo"],["BF-027","benefits",1,4,"세금·환급","연말정산 보험료 공제","연말정산 보험료 공제 대상과 한도","정보",1,"B","애드포스트(보험)","todo"],["BF-028","benefits",2,1,"세금·환급","연말정산 환급일","연말정산 환급일과 추가 납부 확인하는 법","정보",3,"A","애드포스트(금융)","todo"],["BF-029","benefits",2,1,"문화","문화누리카드","문화누리카드 발급 대상과 사용처","정보",2,"A","애드포스트","todo"],["BF-030","benefits",2,1,"교육","교육급여","교육급여 신청 대상과 금액","정보",3,"B","애드포스트","todo"],["BF-031","benefits",2,2,"주거","청년 월세 지원","청년 월세 지원 조건과 신청 방법","정보",2,"A","애드포스트","todo"],["BF-032","benefits",2,2,"세금·환급","연말정산 놓친 공제","연말정산에서 놓친 공제, 경정청구로 돌려받기","정보",5,"B","애드포스트(금융)","todo"],["BF-060","benefits",2,2,"일자리","청년 일자리 지원금","청년 취업 지원금, 받을 수 있는 제도 정리","정보",3,"B","애드포스트","todo"],["BF-079","benefits",2,2,"교육","교육비 지원","초중고 교육비 지원 신청과 항목","정보",3,"B","애드포스트","todo"],["BF-085","benefits",2,2,"세금·환급","근로장려금 하반기 신청","근로장려금 하반기 반기 신청 기간과 방법","정보",3,"A","애드포스트","todo"],["BF-034","benefits",2,3,"출산·육아","아이돌봄 서비스","아이돌봄 서비스 신청과 정부 지원 비율","정보",1,"B","애드포스트","todo"],["BF-035","benefits",2,4,"주거","주택 구입 생애최초","생애최초 주택 구입 혜택, 취득세 감면과 대출","정보",2,"B","애드포스트(금융)","todo"],["BF-036","benefits",2,4,"생활 지원","주거급여","주거급여 대상과 신청 방법","정보",1,"C","애드포스트","todo"],["BF-039","benefits",3,2,"주거","신혼부부 특별공급","신혼부부 특별공급 조건과 소득 기준","정보",3,"B","애드포스트","todo"],["BF-040","benefits",3,2,"일자리","실업급여 조건","실업급여 받을 수 있는 조건과 신청 순서","정보",3,"A","애드포스트","todo"],["BF-041","benefits",3,3,"일자리","국민취업지원제도","국민취업지원제도 유형과 받을 수 있는 지원","정보",1,"B","애드포스트","todo"],["BF-042","benefits",3,3,"출산·육아","육아휴직 급여","육아휴직 급여 계산과 신청 시기","정보",3,"A","애드포스트","todo"],["BF-043","benefits",3,4,"자동차","다자녀 자동차 취득세","다자녀 가구 자동차 취득세 감면 조건","정보",1,"B","애드포스트","todo"],["BF-044","benefits",3,4,"생활 지원","정부 지원금 조회","내가 받을 수 있는 정부 지원금 조회 방법","정보",6,"B","애드포스트","todo"],["BF-045","benefits",4,1,"건강·의료","건강보험료 정산","4월 건강보험료 정산, 추가 납부 이유와 분할 납부","정보",4,"A","애드포스트(보험)","todo"],["BF-046","benefits",4,1,"주거","청년 전세대출","청년 전세대출 조건과 금리 비교 포인트","비교",1,"A","애드포스트(금융)","todo"],["BF-047","benefits",4,2,"주거","주택청약통장 혜택","주택청약통장 소득공제와 이자 혜택","정보",4,"B","애드포스트(금융)","todo"],["BF-048","benefits",4,2,"연금","국민연금 예상 수령액","국민연금 예상 수령액 조회하는 법","정보",1,"B","애드포스트(금융)","todo"],["BF-049","benefits",4,3,"생활 지원","기초생활수급자 조건","기초생활수급자 선정 기준과 신청 방법","정보",1,"B","애드포스트","todo"],["BF-051","benefits",4,4,"에너지","가전 무상수거","폐가전 무상 방문수거 신청 방법","정보",4,"B","애드포스트","todo"],["BF-052","benefits",4,4,"문화","근로자 휴가 지원","근로자 휴가 지원사업 신청 방법","정보",7,"C","애드포스트","todo"],["BF-053","benefits",5,1,"세금·환급","종합소득세 신고","종합소득세 신고 방법, 직장인 부업 소득까지","정보",5,"A","애드포스트(금융)","todo"],["BF-054","benefits",5,1,"세금·환급","근로장려금 신청","근로장려금 정기 신청 방법과 소득·재산 기준","정보",5,"A","애드포스트","todo"],["BF-007","benefits",5,2,"생활 지원","보조금24","보조금24로 내가 받을 수 있는 지원금 한 번에 찾기","정보",6,"A","애드포스트","todo"],["BF-055","benefits",5,2,"세금·환급","자녀장려금","자녀장려금 조건과 근로장려금과 차이","정보",5,"A","애드포스트","todo"],["BF-056","benefits",5,2,"세금·환급","종합소득세 환급","종합소득세 환급 받는 경우와 환급일","정보",5,"A","애드포스트(금융)","todo"],["BF-058","benefits",5,3,"세금·환급","숨은 환급금 조회","숨은 환급금 조회, 세금·보험·통신비 한 번에","정보",9,"B","애드포스트","todo"],["BF-059","benefits",5,4,"출산·육아","어린이날 지원","가정의 달 아동·가족 지원 제도 정리","정보",5,"C","애드포스트","todo"],["BF-061","benefits",6,1,"에너지","에너지 캐시백","한전 에너지 캐시백 신청과 아끼는 기준","정보",7,"A","애드포스트","todo"],["BF-062","benefits",6,1,"에너지","에너지바우처 하절기","에너지바우처 여름 사용법, 전기요금 차감","정보",7,"B","애드포스트","todo"],["BF-004","benefits",6,2,"에너지","에너지바우처","에너지바우처 대상과 신청 방법","정보",7,"A","애드포스트","todo"],["BF-006","benefits",6,2,"에너지","전기요금 복지할인","전기요금 복지할인 대상과 신청","정보",7,"B","애드포스트","todo"],["BF-063","benefits",6,2,"건강·의료","본인부담상한제","본인부담상한제 환급금, 대상과 조회","정보",8,"B","애드포스트(보험)","todo"],["BF-064","benefits",6,2,"주거","전세보증보험","전세보증보험 가입 조건과 보증료 지원","정보",6,"A","애드포스트(보험)","todo"],["BF-067","benefits",6,4,"문화","청년 문화 지원","청년 문화 지원 제도, 공연·전시 할인 정리","정보",6,"C","애드포스트","todo"],["BF-068","benefits",6,4,"생활 지원","통신비 감면","통신비 감면 대상과 신청 방법","정보",10,"C","애드포스트","todo"],["BF-069","benefits",7,1,"세금·환급","재산세 납부","재산세 7월·9월 납부, 고지서 보는 법","정보",7,"A","애드포스트(금융)","todo"],["BF-070","benefits",7,1,"에너지","여름 전기요금 할인","여름철 전기요금 할인 제도 정리","정보",8,"B","애드포스트","todo"],["BF-071","benefits",7,2,"건강·의료","건강보험 환급금","건강보험 환급금 조회와 환급 사기 구별법","정보",9,"B","애드포스트(보험)","todo"],["BF-072","benefits",7,2,"출산·육아","출산 지원금 지역별","출산 지원금, 지역별 차이 확인하는 법","정보",7,"B","애드포스트","todo"],["BF-092","benefits",7,2,"생활 지원","1인 가구 지원","1인 가구 지원 제도, 지역별 찾는 법","정보",8,"C","애드포스트","todo"],["BF-073","benefits",7,3,"교통","고속도로 통행료 감면","고속도로 통행료 감면 대상 정리","정보",7,"B","애드포스트","todo"],["BF-075","benefits",7,4,"자동차","저공해차 혜택","저공해차 혜택, 주차 할인과 통행료 감면","정보",7,"C","애드포스트","todo"],["BF-076","benefits",7,4,"일자리","고용보험 가입 확인","고용보험 가입 이력 조회하는 법","정보",7,"C","애드포스트","todo"],["BF-077","benefits",8,1,"세금·환급","주민세 납부","8월 주민세 개인분·사업소분 납부 정리","정보",8,"A","애드포스트","todo"],["BF-078","benefits",8,1,"세금·환급","근로장려금 지급일","근로장려금 지급일과 지급액 조회","정보",8,"A","애드포스트","todo"],["BF-037","benefits",8,2,"세금·환급","근로장려금 반기 신청","근로장려금 반기 신청, 정기 신청과 다른 점","정보",9,"A","애드포스트","todo"],["BF-080","benefits",8,2,"건강·의료","독감 무료 접종","독감 무료 예방접종 대상과 시기","정보",10,"A","애드포스트","todo"],["BF-081","benefits",8,3,"연금","국민연금 반환일시금","국민연금 반환일시금 받을 수 있는 경우","정보",10,"C","애드포스트(금융)","todo"],["BF-082","benefits",8,3,"주거","주택 임차 보증금 반환","전세 보증금 반환이 늦을 때 순서대로 할 일","문제해결",8,"B","애드포스트","todo"],["BF-083","benefits",8,4,"생활 지원","추석 지원금","추석 명절 지원 제도와 확인할 곳","정보",9,"C","애드포스트","todo"],["BF-084","benefits",8,4,"문화","숙박 할인 쿠폰","숙박 할인 쿠폰 받는 법과 사용 조건","정보",8,"C","애드포스트","todo"],["BF-086","benefits",9,1,"세금·환급","재산세 2기","9월 재산세 2기분, 7월분과 차이","정보",9,"A","애드포스트(금융)","todo"],["BF-038","benefits",9,2,"주거","청약 가점 계산","청약 가점 계산하는 법, 항목별 점수","정보",10,"A","애드포스트","todo"],["BF-087","benefits",9,2,"교육","국가장학금 기준","국가장학금 소득구간 계산 방법","정보",12,"B","애드포스트","todo"],["BF-088","benefits",9,2,"건강·의료","건강검진 미수검","건강검진 미수검 불이익과 연내 예약 팁","정보",12,"B","애드포스트","todo"],["BF-089","benefits",9,3,"주거","주택 청약 일정 보는 법","청약홈에서 청약 일정 보는 법","정보",9,"B","애드포스트","todo"],["BF-090","benefits",9,3,"자동차","자동차 검사 기간","자동차 정기검사 기간 조회와 과태료","정보",9,"B","애드포스트","todo"],["BF-091","benefits",9,4,"일자리","중장년 일자리 지원","중장년 재취업 지원 제도 정리","정보",9,"C","애드포스트","todo"],["BF-093","benefits",10,1,"건강·의료","독감 예방접종 무료 대상","독감 예방접종 무료 대상과 예약 방법","정보",10,"A","애드포스트","todo"],["BF-094","benefits",10,1,"세금·환급","연말정산 절세 체크리스트","연말정산 대비 10월 절세 체크리스트","정보",10,"B","애드포스트(금융)","todo"],["BF-014","benefits",10,2,"에너지","난방비 지원","겨울 난방비 지원, 받을 수 있는 제도 정리","정보",11,"A","애드포스트","todo"],["BF-050","benefits",10,2,"교통","어르신 교통비 지원","어르신 교통비 지원, 지역별 확인하는 법","정보",11,"C","애드포스트","todo"],["BF-095","benefits",10,2,"연금","개인연금 세액공제","연금저축·IRP 세액공제 한도와 연말 납입","정보",12,"A","애드포스트(금융)","todo"],["BF-096","benefits",10,2,"에너지","동절기 에너지 지원","겨울 오기 전 확인할 에너지 지원 제도","정보",10,"B","애드포스트","todo"],["BF-097","benefits",10,3,"교육","평생교육 바우처","평생교육 바우처 신청과 사용처","정보",3,"C","애드포스트","todo"],["BF-098","benefits",10,3,"출산·육아","다자녀 혜택","다자녀 가구 혜택 정리, 기준과 지역 차이","정보",1,"B","애드포스트","todo"],["BF-099","benefits",10,4,"주거","주거 안정 월세 대출","월세 대출 지원 제도 정리","정보",2,"C","애드포스트(금융)","todo"],["BF-100","benefits",10,4,"생활 지원","지역화폐 혜택","지역화폐 할인 혜택과 사용처 확인","정보",10,"C","애드포스트","todo"]],"voices":[{"key":"carso","label":"카쏘","greeting":"안녕하세요! 카쏘입니다.","center":true,"note":"","text":"# 카쏘 목소리 (친근한 정보 글)\n\n네이버 블로그 efgm3(so의 정보 차고)의 최신 글 「BMW 배터리 방전 겨울철 원인과 점프 시동 방법 총정리」의 말투를 기준으로 만든 규칙입니다. 자동차 관리, 생활 꿀팁처럼 바로 따라 하는 글에 씁니다.\n\n## 화자\n\n- 닉네임은 카쏘. 블로그 이름은 'so의 정보 차고'이고, 자동차(Car Life)와 생활 정보를 정리한다.\n- 공식 자료와 직접 확인한 내용으로 쓴다. 자기 차, 직업, 가족 같은 개인 정보는 운영자 메모에 있을 때만 쓴다.\n- 경험이 없으면 경험한 척하지 않는다. 경험이 들어가면 좋은 자리는 [경험 추가]로 남긴다.\n\n## 말투\n\n- 기본은 해요체. \"~습니다\"는 글 전체에서 3~6번 섞어 믿음직하게 쓴다.\n- 독자가 겪었을 장면으로 공감하며 시작한다. 예: \"추운 아침 시동 버튼을 눌렀는데 / 차가 조용하기만 해서 / 당황하신 적 있으시죠? ㅠㅠ\"\n- 자주 쓰는 말: 꼭, 진짜, 완전, 넘나(글 전체 1번). 같은 말을 연달아 반복하지 않는다.\n- 해결되는 순간에 \"뚜둔!\"을 한 번 쓴다. 예: \"뚜둔! 시동이 걸렸다면\"\n- 이모티콘은 ㅠㅠ ㅎㅎ ^^ >.< 중에서 글 전체 3~6개, 문단당 최대 1개. ㅋㅋㅋ와 그림 이모지는 쓰지 않는다.\n- 괄호 속 속마음을 1번 넣는다. 예: (말이 쉽지 이걸 다 챙기긴 어렵쥬? ㅎㅎ)\n- 꼭 지킬 점은 단호하게: \"꼭 ~하세요!\", \"~는 금물!\", \"여기서 중요한 점!\", \"아 참,\"\n- 차·제품 정보는 \"차종과 연식마다 달라요\"처럼 범위를 밝히고, 확실하지 않은 수치는 [확인 필요]로 남긴다.\n- 과장 광고 문구, 근거 없는 최상급은 쓰지 않는다.\n\n## 형식 (네이버 모바일, 가운데 정렬)\n\n- 한 줄은 15~25자. 의미 단위에서 줄을 바꾸고, 2~4줄마다 빈 줄을 둔다. 한 덩어리는 5줄을 넘기지 않는다.\n- 첫머리에서 결론을 **굵게** 1~2줄로 먼저 말한다. 예: \"**BMW 배터리 방전은 대부분 / 추위, 짧은 운행, 대기전력이 겹쳐서 생겨요.**\"\n- 소제목(##)은 짧고 말하듯이: \"이런 증상이면 방전 의심!\", \"점프 시동, 순서가 핵심!\", \"겨울철 방전 예방 관리\"\n- 증상, 원인, 순서, 예방은 번호 목록으로 쓴다. 순서가 중요한 마지막 단계는 굵게.\n- 사진 자리 → 사진 설명 1~2줄 → 빈 줄의 리듬. 사진 자리는 5~8곳.\n- 끝부분에 인용구(>)로 \"총정리\" 3~5줄.\n- '자주 묻는 질문'은 \"Q. 질문?\" 소제목 3개와 2~3줄 답으로 쓴다.\n\n## 글의 흐름\n\n1. 첫 줄 인사: \"안녕하세요! 카쏘입니다.\"\n2. 공감 장면 2~4줄\n3. 결론 굵게 1~2줄, 지금 할 일 한 줄\n4. 소제목 3~5개: 증상 또는 상황 → 원인 → 방법(순서) → 예방\n5. \"여기서 중요한 점!\" 또는 \"아 참,\"으로 주의할 점\n6. 인용구 총정리\n7. 자주 묻는 질문\n8. 마무리 2~3줄: 응원과 \"궁금하신 점은 댓글로 남겨주세요 >.<\"\n\n## 문장 예시 (실제 글에서)\n\n- 방전은 갑자기 오는 것 같지만 / 미리 신호를 주는 경우가 많아요.\n- 이런 신호가 보이는데 / \"아직 괜찮겠지\" 하고 넘기는 건 금물!\n- BMW는 전자장비가 많아서 / 시동을 꺼도 쓰는 전기가 있어요.\n- 도와줄 차가 없을 때를 대비해 / 휴대용 점프스타터를 / 트렁크에 하나 두면 넘나 든든해요.\n- 겨울 아침에 시동 안 걸리면 / 진짜 하루가 꼬이잖아요 ^^\n\n(/는 실제 글에서 줄을 바꾼 위치)"},{"key":"info","label":"정보형","greeting":"","center":false,"note":"","text":"# 카쏘 목소리 (정보형 설명 글)\n\n네이버 블로그 efgm3(so의 정보 차고)의 2026년 8월 글 3편(여름 옷 보관, 스마트폰 사진 정리, BMW M3 Touring 제원)의 말투를 기준으로 만든 규칙입니다. 제원·리뷰, 제도·지원금처럼 차분하게 설명하는 글에 씁니다.\n\n## 화자\n\n- 카쏘가 쓰지만 1인칭은 거의 드러내지 않는다. \"개인적으로 관리하기 편한 기준은~\" 정도로 글 전체 1~2번.\n- 자동차 제원, 제도 요건은 출처를 밝힌다. 예: \"BMW 공식 자료에 따르면\", \"국내 공식 자료 기준\". 출처를 확인하지 못한 수치는 [확인 필요]로 남긴다.\n- 경험이 없으면 경험한 척하지 않는다.\n\n## 말투\n\n- 합니다체(~습니다, ~입니다)로 차분하게 쓴다. 해요체는 쓰지 않는다.\n- 인사말 없이 시작한다. 첫 문단은 독자가 겪는 상황을 2~3문장으로 그린다. 예: \"스마트폰을 사용하다 보면 사진이 어느 순간 감당하기 어려울 정도로 쌓여 있는 것을 발견하게 됩니다.\"\n- 둘째 문단에서 이 글의 관점을 밝힌다. 예: \"사진 정리는 저장 공간을 확보하는 것만이 목적은 아닙니다. 나중에 필요한 사진을 쉽게 찾을 수 있도록 기준을 만들어두는 것이 더 중요합니다.\"\n- 핵심은 대비로 짚는다. 예: \"여기서 중요한 것은 '예쁘게 접는 것'보다 '다음에 꺼내기 쉽게 정리하는 것'입니다.\"\n- 조언은 부드럽게: \"~하는 편이 좋습니다\", \"~하는 것도 방법입니다\", \"~해 보세요\"\n- 이모티콘(ㅠㅠ, ^^ 등)은 쓰지 않는다. 자동차 글에서만 큰 소제목이 끝날 때 그림 이모지 1개를 붙일 수 있다(🚗 🔧 🏁 등, 글 전체 3~5개).\n- 같은 수치나 결론을 여러 번 되풀이하지 않는다. 한 번 말한 숫자는 다시 쓰지 말고 앞을 가리킨다.\n\n## 형식 (왼쪽 정렬)\n\n- 문단은 2~4문장. 문단 안에서 억지로 줄을 바꾸지 않고, 문단 사이에 빈 줄을 둔다.\n- 소제목(##)은 할 일을 나타내는 \"~하기\" 꼴로 쓴다. 예: \"옷장에 넣기 전에 먼저 골라내기\", \"보관 장소는 습기와 통풍을 함께 생각하기\", \"앨범은 적게 만들수록 관리하기 편하다\"\n- 소제목 4~6개. 각 소제목 아래 첫 문장은 그 단계의 핵심을 한 문장으로 말한다.\n- 기준이나 질문이 여러 개면 \"첫 번째는 ~입니다. 두 번째는 ~입니다.\"처럼 문장으로 세거나 짧은 목록으로 쓴다.\n- 제원·리뷰 글은 첫 문단에 핵심 수치 2~3개를 요약하고, \"누구에게 어울리는가\" 소제목을 꼭 둔다. 비교가 필요하면 4칸 이하 표를 쓴다.\n- 사진 자리는 3~6곳. 자동차 글은 [사진: 공식 이미지 또는 직접 찍은 사진] 식으로 출처를 적는다.\n- 끝에서 둘째 문단은 \"마무리하자면,\"으로 시작해 핵심을 2~3문장으로 요약하고, 오늘 바로 해 볼 작은 행동 하나를 제안한다.\n- '자주 묻는 질문'은 \"질문: ~?\" / \"답변: ~\" 꼴로 3개.\n\n## 문장 예시 (실제 글에서)\n\n- 처음에는 시간이 날 때 한꺼번에 정리해야겠다고 생각하지만 막상 사진이 수천 장씩 쌓이면 어디서부터 손대야 할지 막막해집니다.\n- 당장 버리거나 처분할 필요는 없습니다. 다만 다음 시즌에 다시 꺼낼 옷과 그렇지 않은 옷을 구분해 놓으면 보관 공간을 효율적으로 사용할 수 있습니다.\n- 옷장을 한 번에 완벽하게 정리하려고 하면 금방 지칠 수 있습니다. 오늘은 반팔만 정리하고 다음에는 여름 바지만 정리하는 식으로 나누어도 충분합니다.\n- 따라서 G81 M3 Touring을 평가할 때는 '530마력'이라는 숫자 하나만 보는 것보다 엔진-변속기-M xDrive-서스펜션-브레이크가 하나의 시스템으로 작동한다는 점에 주목할 필요가 있습니다.\n- 중요한 것은 완벽하게 정리하는 것이 아니라 다시 엉키지 않는 기준을 만드는 것입니다."}],"trends":{"BM-001":[0.02,11,0.1,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.02,0.0,0.0,0.02,0.31,0.21]],"BM-002":[0.55,1,4.41,-91.4,[4.57,2.76,1.22,0.51,0.58,0.33,0.2,0.13,0.12,0.32,1.02,4.25]],"BM-003":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-004":[0.01,11,0.04,-100.0,[0.04,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.02,0.09,0.04]],"BM-005":[1.08,11,1.19,-94.9,[0.0,0.0,0.0,0.0,0.0,0.04,0.05,0.05,0.4,0.87,2.55,2.38]],"BM-006":[26.38,1,41.8,-4.3,[43.25,35.82,26.62,27.74,27.66,26.41,23.82,24.26,22.58,22.73,25.97,40.36]],"BM-007":[0.8,8,0.11,-52.9,[0.1,0.54,0.58,0.5,0.15,0.31,1.28,1.49,1.33,1.44,0.45,0.11]],"BM-008":[0.46,8,0.4,-64.4,[0.43,0.29,0.32,0.09,0.11,0.25,0.91,1.21,1.16,0.82,0.44,0.37]],"BM-009":[0.01,3,0.38,-100.0,[0.74,0.38,1.23,0.83,0.55,0.1,0.12,0.05,0.0,0.0,0.28,0.02]],"BM-010":[0.01,11,0.0,null,[0.0,0.02,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.03,0.0]],"BM-011":[0.0,12,0.01,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.02]],"BM-012":[1.32,12,7.11,null,[3.0,0.02,0.0,0.0,0.0,0.17,0.0,0.0,0.0,0.0,0.52,11.22]],"BM-013":[0.57,1,3.08,-87.5,[3.26,2.57,3.15,2.34,1.68,1.49,1.74,1.48,1.58,1.25,2.88,2.91]],"BM-014":[0.06,1,1.7,-84.2,[1.82,1.69,1.29,1.03,0.82,0.32,0.66,0.65,0.2,0.25,0.83,1.57]],"BM-015":[0.03,11,0.32,null,[0.25,0.17,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.46,0.38]],"BM-016":[12.53,11,18.41,-50.8,[18.85,18.32,18.86,16.69,17.93,16.41,18.21,17.62,16.86,16.68,19.68,17.97]],"BM-017":[0.0,9,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.02,0.0,0.0,0.0]],"BM-018":[0.0,9,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.02,0.0,0.0,0.0]],"BM-019":[0.01,11,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.03,0.0]],"BM-020":[805.28,1,4680.85,-8.7,[8641.26,646.07,147.46,32.03,22.02,280.98,56.02,19.97,23.53,12.92,28.77,720.44]],"BM-021":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-022":[0.0,5,0.0,null,[0.0,0.0,0.0,0.0,0.02,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-023":[0.02,2,1.21,-100.0,[1.2,1.58,1.19,0.45,0.72,0.76,0.38,0.71,0.87,0.66,0.91,1.21]],"BM-024":[5.88,11,9.91,-49.6,[9.06,8.1,8.42,7.89,7.78,7.07,8.04,8.31,8.01,7.73,10.88,10.75]],"BM-025":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-026":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-027":[450.27,3,515.46,-3.6,[543.24,516.51,543.65,497.51,500.11,474.72,478.3,519.4,479.73,473.88,472.99,487.67]],"BM-028":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-029":[0.0,5,0.06,null,[0.08,0.07,0.04,0.02,0.09,0.0,0.02,0.09,0.02,0.02,0.04,0.04]],"BM-030":[0.0,5,0.44,-100.0,[0.42,0.29,0.35,0.24,0.52,0.43,0.06,0.08,0.12,0.19,0.16,0.47]],"BM-031":[0.34,11,2.45,-82.4,[2.1,2.27,1.16,0.94,1.12,1.22,0.84,1.16,0.98,2.61,2.94,2.79]],"BM-032":[0.5,3,1.68,-88.8,[1.46,1.02,2.12,1.26,1.05,0.67,0.92,0.78,1.26,1.78,1.55,1.9]],"BM-033":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-034":[1.31,11,14.74,-81.6,[15.09,10.63,7.33,7.28,9.39,9.79,11.25,13.05,13.83,13.17,15.37,14.39]],"BM-035":[4.69,3,8.88,-45.0,[11.58,13.09,27.48,7.73,7.24,5.65,4.18,3.79,3.7,3.73,5.23,6.17]],"BM-036":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-037":[0.01,11,0.0,-100.0,[0.0,0.02,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.02,0.04,0.0]],"BM-038":[7.89,4,5.51,20.1,[5.49,5.99,11.84,20.31,13.68,10.78,9.27,7.95,6.63,6.64,7.25,5.53]],"BM-039":[0.0,1,0.01,null,[0.02,0.0,0.02,0.0,0.0,0.0,0.0,0.02,0.0,0.0,0.0,0.0]],"BM-040":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-041":[21.13,3,32.22,-36.3,[32.03,30.04,33.18,29.88,32.46,31.16,31.77,31.37,31.54,27.43,32.82,32.41]],"BM-042":[0.0,4,0.0,null,[0.0,0.0,0.0,0.02,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-043":[17.45,8,17.86,-8.9,[18.19,19.77,20.07,17.49,19.6,18.75,20.47,20.89,18.8,18.29,19.55,17.53]],"BM-044":[0.02,4,0.53,5.3,[0.53,0.62,0.76,0.96,0.49,0.44,0.32,0.64,0.44,0.43,0.53,0.52]],"BM-045":[0.0,10,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.02,0.0,0.0]],"BM-046":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-047":[0.0,4,0.0,-100.0,[0.0,0.0,0.0,0.02,0.0,0.0,0.0,0.02,0.02,0.0,0.0,0.0]],"BM-048":[0.14,11,0.18,-71.6,[0.09,0.16,0.1,0.12,0.02,0.04,0.05,0.26,0.12,0.08,0.32,0.28]],"BM-049":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-050":[0.39,4,0.0,null,[0.0,0.06,1.27,1.37,0.12,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-051":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-052":[0.0,1,0.01,null,[0.02,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-053":[0.0,2,0.0,null,[0.0,0.02,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-054":[109.31,8,216.06,-79.1,[232.84,226.75,184.02,174.76,184.87,201.94,209.34,234.82,186.48,174.47,210.56,199.28]],"BM-055":[5.51,12,9.39,-20.6,[8.16,6.23,4.53,3.63,4.34,4.67,4.67,5.28,6.96,8.4,10.21,10.62]],"BM-056":[4.15,12,12.21,-62.2,[11.34,9.88,9.04,7.8,7.43,6.89,7.08,4.67,6.04,6.73,8.47,13.09]],"BM-057":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-058":[0.0,8,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.02,0.04,0.0,0.0,0.0,0.0]],"BM-059":[0.0,1,0.01,null,[0.02,0.0,0.02,0.0,0.0,0.0,0.0,0.0,0.0,0.02,0.0,0.0]],"BM-060":[0.0,3,0.0,null,[0.0,0.0,0.02,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-061":[0.5,6,0.96,null,[1.81,0.05,0.0,0.0,0.96,8.54,0.46,0.0,0.0,0.0,0.0,0.1]],"BM-062":[0.11,7,0.0,null,[0.0,0.0,0.0,0.0,0.06,2.21,2.52,0.0,0.0,0.02,0.0,0.0]],"BM-063":[1.18,4,0.07,31.4,[0.0,0.16,1.91,4.63,3.33,2.59,1.13,0.57,1.0,1.08,0.57,0.13]],"BM-064":[0.0,2,0.01,null,[0.02,0.04,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-065":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-066":[0.0,8,0.0,-100.0,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.02,0.0,0.0,0.0,0.0]],"BM-067":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-068":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-069":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-070":[0.0,6,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.02,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-071":[6.68,12,16.88,-17.5,[16.42,10.55,8.35,5.86,4.98,5.13,5.41,5.53,5.67,8.02,12.63,17.33]],"BM-072":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-073":[0.01,8,0.0,-57.1,[0.0,0.02,0.0,0.0,0.02,0.0,0.02,0.07,0.0,0.0,0.0,0.0]],"BM-074":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-075":[1.59,9,3.15,-25.1,[3.2,5.99,4.97,4.45,2.69,2.9,2.96,2.16,6.39,4.46,3.26,3.09]],"BM-076":[0.34,3,1.73,-95.7,[1.69,2.0,10.32,1.18,6.96,1.43,0.1,0.05,0.56,0.36,1.74,1.76]],"BM-077":[0.69,7,0.04,-59.2,[0.0,0.0,0.0,0.02,0.04,0.07,7.82,3.47,0.64,0.03,0.1,0.08]],"BM-078":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-079":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-080":[0.73,1,4.95,-100.0,[5.13,3.87,3.28,2.95,2.95,2.87,2.77,3.41,3.87,3.03,4.35,4.77]],"BM-081":[0.0,9,0.02,null,[0.02,0.02,0.0,0.0,0.0,0.0,0.02,0.0,0.06,0.02,0.02,0.02]],"BM-082":[14.97,11,18.38,-19.5,[18.78,18.1,20.01,17.15,17.34,17.4,17.97,18.51,19.01,20.61,29.01,17.97]],"BM-083":[0.1,12,0.26,-54.4,[0.13,0.2,0.27,0.2,0.29,0.3,0.19,0.2,0.25,0.07,0.13,0.39]],"BM-084":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-085":[0.01,9,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.02,0.02,0.0,0.0]],"BM-086":[0.08,5,0.06,-63.2,[0.09,0.0,0.06,0.07,0.1,0.04,0.03,0.05,0.04,0.02,0.04,0.02]],"BM-087":[0.64,1,2.23,-87.1,[2.29,1.67,2.17,1.7,1.41,1.34,1.07,1.6,1.06,1.06,1.7,2.16]],"BM-088":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-089":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-090":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-091":[0.94,3,3.07,-80.3,[3.18,3.43,3.52,2.46,2.82,2.52,2.43,2.79,2.55,2.56,3.07,2.96]],"BM-092":[0.08,2,0.08,null,[0.07,0.09,0.0,0.02,0.0,0.02,0.0,0.02,0.02,0.0,0.0,0.09]],"BM-093":[0.33,11,0.0,-100.0,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.69,2.92,0.0]],"BM-094":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-095":[2.81,11,6.55,-41.8,[6.25,5.31,5.95,5.2,4.61,4.62,4.78,4.62,4.46,4.72,7.1,6.86]],"BM-096":[0.01,5,0.0,-100.0,[0.0,0.0,0.0,0.0,0.02,0.0,0.02,0.0,0.02,0.02,0.0,0.0]],"BM-097":[9.28,3,12.65,6.7,[13.47,12.8,13.72,12.91,12.38,11.59,11.8,13.29,10.8,10.8,12.94,11.83]],"BM-098":[0.0,1,0.04,-100.0,[0.07,0.06,0.04,0.02,0.0,0.0,0.0,0.0,0.0,0.07,0.03,0.0]],"BM-099":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BM-100":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"CR-001":[0.54,12,1.04,-93.9,[0.24,0.59,0.31,0.16,0.02,0.04,0.24,0.36,0.45,0.0,0.36,1.83]],"CR-002":[894.65,1,1210.03,-13.3,[1230.51,1067.81,1068.35,999.97,1120.92,991.13,1019.92,1095.86,951.13,913.65,1172.72,1189.56]],"CR-003":[1547.12,1,2375.09,-31.3,[2510.44,2289.14,2207.79,2045.1,2150.21,2083.39,2230.83,2386.22,2022.53,1933.35,2239.55,2239.74]],"CR-004":[2228.96,1,2673.62,-3.1,[2830.13,2596.41,2606.93,2401.56,2561.43,2389.82,2455.83,2511.72,2294.81,2209.11,2356.74,2517.12]],"CR-005":[644.48,11,1101.81,-22.8,[1146.9,1046.48,981.45,890.6,908.62,873.56,877.09,1000.52,933.67,895.79,1200.35,1056.71]],"CR-006":[17.17,7,14.11,-32.4,[15.12,16.18,18.23,18.1,18.15,18.96,20.43,19.1,18.63,18.69,14.87,13.11]],"CR-007":[1.58,1,2.58,-6.3,[2.98,1.99,2.31,1.95,1.74,1.41,1.76,1.77,2.04,1.61,1.92,2.17]],"CR-008":[2.34,1,2.73,-22.4,[3.08,2.85,3.05,2.77,2.41,2.67,2.68,3.03,2.99,3.01,2.19,2.38]],"CR-009":[0.3,12,0.66,-100.0,[0.29,0.32,0.04,0.0,0.0,0.02,0.07,0.0,0.02,0.04,0.06,1.03]],"CR-010":[0.05,5,0.01,-42.9,[0.02,0.0,0.0,0.11,0.38,0.2,0.0,0.18,0.29,0.16,0.0,0.0]],"CR-011":[1085.83,11,2000.32,-36.1,[1977.6,1743.17,1614.93,1462.74,1590.93,1482.44,1532.02,1636.62,1395.33,1332.47,2420.48,2023.04]],"CR-012":[459.81,1,571.89,-41.6,[591.17,543.4,533.17,569.73,525.94,510.02,492.43,511.44,485.65,502.76,428.71,552.61]],"CR-013":[4223.62,1,2809.07,44.6,[3639.72,2366.65,2530.37,2883.07,2404.2,2945.87,2754.45,3019.23,2671.54,2832.53,1800.03,1978.41]],"CR-014":[0.39,9,1.89,-76.8,[2.3,1.74,1.95,1.56,1.59,1.75,1.6,2.17,2.56,1.78,1.89,1.48]],"CR-015":[1163.42,1,1432.61,5.1,[1472.82,1371.33,1341.61,1248.4,1318.9,1262.52,1310.89,1459.96,1297.94,1342.67,1413.84,1392.39]],"CR-016":[551.07,3,580.04,7.3,[614.28,596.57,614.74,553.59,587.19,560.94,572.75,565.78,553.8,569.58,561.59,545.81]],"CR-017":[0.27,7,0.22,26.8,[0.23,0.23,0.24,0.28,0.3,0.33,0.4,0.24,0.33,0.27,0.26,0.21]],"CR-018":[0.02,8,0.02,-100.0,[0.0,0.04,0.05,0.05,0.02,0.02,0.0,0.09,0.02,0.02,0.04,0.04]],"CR-019":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"CR-020":[560.02,8,709.0,-18.0,[752.69,677.41,682.73,642.5,638.78,648.71,646.78,812.0,634.13,601.81,675.4,665.3]],"CR-021":[680.43,1,932.54,1.3,[948.06,918.83,855.96,791.44,778.9,775.68,768.09,866.8,807.41,932.69,816.76,917.03]],"CR-022":[955.83,1,1411.82,-25.9,[1472.04,1346.08,1310.26,1150.21,1199.47,1212.82,1255.2,1368.7,1176.44,1093.27,1453.13,1351.61]],"CR-023":[253.76,6,121.88,49.9,[144.58,162.85,176.86,217.1,301.26,362.87,336.0,284.08,203.7,181.58,95.84,99.18]],"CR-024":[187.48,1,250.03,-23.3,[261.83,231.36,225.38,218.24,226.26,214.49,222.05,248.55,226.13,216.09,245.06,238.24]],"CR-025":[2.37,8,2.09,-30.6,[2.11,2.0,1.74,1.61,2.01,2.16,2.21,2.59,2.54,2.5,1.87,2.07]],"CR-026":[620.33,7,560.43,-30.7,[588.82,574.98,661.64,639.9,628.63,687.73,699.49,660.85,548.29,500.71,691.32,532.04]],"CR-027":[4.75,4,1.74,160.1,[2.06,2.11,2.19,2.41,2.4,0.68,1.25,1.82,1.81,2.31,0.83,1.42]],"CR-028":[686.38,7,574.01,-34.4,[654.01,733.95,678.77,621.33,569.17,674.11,988.17,876.93,892.38,847.01,659.76,494.01]],"CR-029":[2.19,3,2.17,-17.1,[2.55,3.22,3.5,1.59,2.27,2.26,1.78,2.45,2.43,2.15,2.03,1.79]],"CR-030":[26.61,1,31.69,-39.5,[33.23,29.48,27.12,24.63,25.54,27.85,27.35,30.1,28.09,26.74,24.06,30.15]],"CR-031":[663.53,1,847.45,-23.4,[890.64,836.74,791.73,725.6,728.96,708.96,770.03,856.28,754.95,693.75,798.77,804.26]],"CR-032":[7.3,8,5.58,-32.6,[6.15,6.11,6.98,7.66,6.64,6.79,7.53,7.91,6.92,7.24,5.35,5.0]],"CR-033":[0.09,8,0.08,-30.6,[0.14,0.04,0.06,0.08,0.09,0.1,0.1,0.16,0.09,0.05,0.08,0.02]],"CR-034":[913.37,8,1034.24,-30.5,[1099.73,1067.8,1012.96,905.94,1054.3,1043.95,1150.03,1248.69,1028.05,1048.93,1007.79,968.75]],"CR-035":[0.79,1,2.4,-48.4,[2.6,2.21,2.28,1.39,1.59,1.93,2.26,2.5,1.33,1.43,2.11,2.19]],"CR-036":[0.01,4,0.0,-100.0,[0.0,0.0,0.0,0.02,0.0,0.0,0.0,0.0,0.0,0.02,0.02,0.0]],"CR-037":[0.12,2,0.01,-93.3,[0.02,0.26,0.06,0.0,0.02,0.08,0.09,0.19,0.21,0.25,0.0,0.0]],"CR-038":[0.37,2,0.85,-74.8,[0.8,1.34,1.25,0.59,0.41,0.5,0.64,0.6,0.62,0.42,0.6,0.91]],"CR-039":[261.84,3,216.24,-21.9,[242.85,241.65,305.3,301.31,242.23,239.28,253.96,238.96,201.57,176.93,194.93,189.62]],"CR-040":[381.28,3,687.87,-38.8,[688.49,665.59,850.44,727.28,724.37,634.63,704.02,695.94,591.07,562.41,701.66,687.25]],"CR-041":[1.12,9,0.53,102.7,[0.6,0.97,0.79,0.63,0.79,0.48,0.49,0.82,1.1,0.83,0.56,0.45]],"CR-042":[9.7,8,59.78,-87.1,[61.54,65.38,66.06,52.78,67.07,58.11,70.59,75.56,49.33,44.19,38.22,58.03]],"CR-043":[1.46,7,1.89,-49.0,[1.95,2.12,2.17,2.22,1.96,2.22,2.34,2.06,1.79,1.82,1.93,1.83]],"CR-044":[1.22,1,4.53,-60.8,[4.83,4.77,4.8,4.36,4.1,3.98,3.73,3.86,4.1,4.27,4.63,4.23]],"CR-045":[49.08,8,56.43,-25.3,[57.25,54.0,54.19,52.39,53.17,50.08,53.79,60.85,56.26,56.39,60.3,55.61]],"CR-046":[0.0,11,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.02,0.0]],"CR-047":[18.44,9,18.62,-21.6,[20.04,19.28,20.33,19.1,18.28,19.04,18.81,19.78,20.45,18.82,17.8,17.19]],"CR-048":[466.73,4,651.69,-25.9,[675.39,636.35,668.06,712.4,643.33,589.94,597.56,597.34,558.66,534.01,632.81,627.99]],"CR-049":[169.09,10,89.89,126.3,[100.21,96.28,93.02,128.3,137.65,107.09,100.55,105.7,136.98,240.65,86.6,79.58]],"CR-050":[0.89,5,0.3,1720.0,[0.4,0.57,0.39,0.55,1.08,1.05,1.08,0.5,0.54,0.63,0.16,0.19]],"CR-051":[100.32,12,102.64,12.9,[86.83,93.47,91.71,96.48,98.06,92.9,100.14,96.32,83.53,78.5,81.16,118.45]],"CR-052":[28.33,8,34.5,-35.7,[36.09,32.05,33.16,32.37,33.35,33.5,42.38,44.11,35.56,32.08,32.52,32.91]],"CR-053":[34.06,1,57.47,-54.4,[61.41,58.59,54.52,46.83,49.45,48.46,53.96,59.93,49.84,48.15,53.38,53.54]],"CR-054":[35.36,8,38.4,-38.4,[40.99,36.03,37.84,36.39,36.24,38.5,41.58,45.8,41.8,42.44,36.1,35.81]],"CR-055":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"CR-056":[20.34,8,27.67,-21.3,[29.12,25.59,23.86,23.12,24.3,22.61,25.13,29.86,27.03,27.68,27.84,26.22]],"CR-057":[3.46,1,7.55,-52.5,[8.05,6.21,6.36,5.25,5.11,4.67,5.06,5.41,5.23,4.78,6.12,7.06]],"CR-058":[621.32,7,753.74,-27.5,[798.31,731.55,677.35,704.71,885.23,784.22,1068.55,843.53,698.69,689.92,732.05,709.18]],"CR-059":[0.99,1,27.35,-96.6,[28.16,27.37,27.02,24.23,25.61,23.99,25.38,27.42,26.4,20.21,26.17,26.54]],"CR-060":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"CR-061":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"CR-062":[0.05,8,0.07,0.0,[0.09,0.09,0.08,0.04,0.04,0.02,0.08,0.11,0.04,0.04,0.06,0.04]],"CR-063":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"CR-064":[182.72,7,335.38,-50.8,[315.31,295.13,308.44,313.67,299.52,358.14,440.24,355.69,354.53,306.51,357.97,355.46]],"CR-065":[8.0,4,12.28,-58.2,[12.99,14.49,15.74,18.14,15.65,15.06,14.8,15.53,15.29,14.6,14.39,11.57]],"CR-066":[0.02,3,0.0,null,[0.0,0.0,0.04,0.0,0.0,0.02,0.02,0.0,0.0,0.0,0.04,0.0]],"CR-067":[723.28,8,668.18,20.4,[682.86,697.81,775.99,714.88,730.99,706.96,720.85,800.66,675.94,623.15,642.68,653.5]],"CR-068":[0.95,4,0.49,53.3,[0.57,0.62,0.67,0.86,0.63,0.71,0.51,0.59,0.58,0.61,0.66,0.42]],"CR-069":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"CR-070":[0.89,5,0.88,-22.2,[0.95,0.97,0.89,0.64,1.17,0.8,0.54,0.82,0.72,0.53,0.53,0.81]],"CR-071":[772.58,8,1057.8,-19.2,[1106.9,936.19,956.3,883.86,894.56,911.07,864.72,1191.73,998.66,929.63,1172.13,1008.69]],"CR-072":[15.18,8,18.16,-29.8,[18.86,17.42,19.09,18.76,18.23,17.32,18.28,20.04,17.3,17.39,18.34,17.47]],"CR-073":[0.03,8,0.21,-100.0,[0.26,0.05,0.14,0.16,0.25,0.14,0.27,0.3,0.05,0.0,0.11,0.16]],"CR-074":[1.76,2,3.52,-72.6,[3.76,3.9,3.0,2.58,3.11,3.22,2.72,3.49,3.31,2.89,3.88,3.28]],"CR-075":[0.04,9,0.02,-58.6,[0.02,0.09,0.02,0.02,0.04,0.0,0.02,0.04,0.12,0.06,0.03,0.02]],"CR-076":[348.25,3,197.52,60.8,[233.67,303.74,323.14,237.52,283.27,278.41,271.04,300.61,244.44,245.22,169.63,161.38]],"CR-077":[0.04,11,0.0,-100.0,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.09,0.14,0.0,0.17,0.0]],"CR-078":[1740.55,1,1368.92,39.4,[1935.34,1319.94,1255.37,1358.83,1150.51,1203.4,1149.97,1108.12,925.61,907.53,745.02,802.51]],"CR-079":[856.91,2,504.03,222.8,[451.07,1050.43,824.04,572.33,470.24,438.58,435.47,408.79,403.43,312.7,507.31,556.99]],"CR-080":[212.91,1,251.28,23.8,[421.52,316.69,184.15,168.94,161.4,159.2,126.5,126.95,102.66,96.81,58.27,81.05]],"CR-081":[110.04,9,102.69,6.7,[113.73,107.24,111.32,104.56,94.69,87.95,99.17,111.25,134.66,129.36,99.53,91.65]],"CR-082":[86.31,8,65.43,36.1,[67.86,70.96,86.38,90.5,99.99,86.2,80.01,350.12,102.11,76.76,72.69,63.0]],"CR-083":[1391.43,7,905.12,-4.5,[1044.21,1086.96,989.44,1116.21,972.58,1104.2,1736.84,1622.39,1181.02,1330.86,960.4,766.03]],"CR-084":[11.37,8,11.27,12.5,[11.29,10.12,10.37,10.52,11.96,10.85,12.04,15.7,12.44,11.64,11.16,11.25]],"CR-085":[0.0,1,0.01,null,[0.02,0.0,0.0,0.02,0.0,0.0,0.0,0.0,0.02,0.02,0.0,0.0]],"CR-086":[9.29,10,5.93,-58.9,[2.87,3.4,6.94,9.76,6.83,6.6,6.8,8.35,9.5,11.64,7.04,8.99]],"CR-087":[11.79,11,43.91,-78.4,[45.78,43.85,45.36,41.66,39.24,40.49,39.86,41.76,38.7,37.1,46.6,42.03]],"CR-088":[10.22,8,32.08,-86.6,[33.17,32.67,31.16,43.96,48.12,49.56,56.88,57.24,51.34,52.51,38.2,30.98]],"CR-089":[918.89,1,1090.53,-5.3,[1167.56,1006.21,1104.33,1019.86,1011.88,966.95,1023.81,1040.97,837.22,800.91,1044.47,1013.5]],"CR-090":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"CR-091":[0.61,9,0.49,15.6,[0.57,0.59,0.53,0.6,0.53,0.62,0.78,0.55,0.88,0.67,0.42,0.42]],"CR-092":[278.04,3,231.03,-2.8,[255.43,269.43,464.72,361.69,313.42,268.42,260.36,268.89,224.55,212.68,212.38,206.63]],"CR-093":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"CR-094":[0.0,7,0.03,-100.0,[0.0,0.07,0.05,0.25,0.18,0.6,0.9,0.6,0.24,0.11,0.17,0.06]],"CR-095":[0.01,11,0.03,-100.0,[0.02,0.02,0.02,0.0,0.0,0.0,0.0,0.02,0.0,0.02,0.06,0.04]],"CR-096":[14.41,1,20.58,-21.8,[21.53,17.88,20.99,18.43,16.4,14.74,15.48,17.49,14.93,15.47,18.7,19.63]],"CR-097":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"CR-098":[937.92,5,873.08,1.2,[864.35,823.02,915.91,1103.07,1149.28,978.9,1043.77,1063.38,874.43,801.65,903.52,881.81]],"CR-099":[591.71,5,631.37,5.2,[666.59,666.3,696.2,666.33,715.5,667.47,653.38,712.86,621.29,576.09,604.33,596.14]],"CR-100":[164.41,7,156.69,1.1,[152.82,137.68,140.53,126.65,133.21,155.55,185.65,182.9,157.42,151.97,132.99,160.57]],"LT-001":[59.07,1,420.27,-37.0,[444.03,335.8,414.05,257.42,61.59,19.97,12.64,14.39,19.25,61.39,296.47,396.52]],"LT-002":[9.68,11,14.82,27.4,[8.88,3.58,2.62,0.7,1.89,2.29,1.43,2.28,4.97,18.05,33.75,20.76]],"LT-003":[1.15,12,11.57,null,[9.67,6.91,0.05,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.52,13.47]],"LT-004":[1.54,5,2.65,-45.1,[2.2,1.92,3.27,4.83,4.91,4.33,1.55,0.59,0.83,2.39,3.47,3.09]],"LT-005":[13.97,11,35.71,11.9,[30.81,25.48,25.12,12.48,3.58,0.83,0.33,0.3,2.52,22.71,49.1,40.61]],"LT-006":[0.4,11,1.29,-100.0,[0.47,0.16,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.04,2.92,2.12]],"LT-007":[0.02,12,0.58,-100.0,[0.34,0.28,0.07,0.0,0.0,0.0,0.0,0.0,0.0,0.04,0.69,0.82]],"LT-008":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"LT-009":[16.33,11,32.09,-43.4,[29.51,32.35,29.77,27.06,27.93,25.48,26.52,25.7,27.84,25.33,36.0,34.68]],"LT-010":[5.04,11,40.78,-30.3,[21.72,8.14,2.18,1.24,0.67,0.34,0.09,0.0,0.65,19.2,105.95,59.84]],"LT-011":[42.37,12,157.75,-40.5,[133.21,63.43,32.41,16.99,9.81,4.83,3.53,2.1,3.84,24.6,114.49,182.29]],"LT-012":[30.86,12,138.89,115.4,[109.38,54.73,19.01,10.56,9.63,7.96,13.5,11.19,15.27,22.93,70.42,168.4]],"LT-013":[25.44,12,92.85,2.9,[81.24,48.0,36.81,22.4,12.83,8.75,5.38,4.93,12.47,45.42,104.36,104.47]],"LT-014":[97.5,7,127.3,61.7,[112.48,85.84,86.27,94.92,116.94,124.59,194.82,81.83,52.58,82.63,156.14,142.11]],"LT-015":[0.02,12,0.17,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.02,0.34]],"LT-016":[45.38,8,67.17,-26.4,[78.7,69.32,67.94,56.11,57.68,66.26,75.97,82.25,66.32,53.04,61.88,55.64]],"LT-017":[0.01,12,0.05,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.1]],"LT-018":[0.71,11,6.5,-52.3,[6.87,3.81,1.76,0.4,0.06,0.02,0.02,0.02,0.1,0.49,7.74,6.14]],"LT-019":[2.51,10,2.34,436.7,[2.69,1.02,0.61,0.45,0.49,0.2,0.21,0.38,1.26,2.94,2.33,1.99]],"LT-020":[1.44,9,0.01,151.5,[0.02,0.0,0.0,0.11,0.91,1.34,0.92,0.82,4.2,2.76,0.16,0.0]],"LT-021":[0.37,6,0.19,2628.6,[0.04,0.02,0.44,0.11,0.45,0.77,0.36,0.0,0.5,0.16,0.06,0.34]],"LT-022":[0.22,6,0.67,-78.8,[0.53,0.96,0.96,1.21,1.64,1.79,1.56,1.25,1.04,0.78,1.78,0.8]],"LT-023":[186.34,1,351.63,-31.1,[388.42,364.76,303.2,212.82,179.26,141.66,216.98,239.79,171.89,159.36,181.37,314.84]],"LT-024":[20.46,1,56.55,-44.8,[64.24,37.93,33.35,24.97,28.03,24.53,22.72,25.14,27.46,22.95,36.04,48.87]],"LT-025":[64.18,1,153.13,42.4,[158.22,59.42,49.68,31.42,19.56,11.02,4.81,2.01,1.42,6.35,122.47,148.05]],"LT-026":[2.44,8,8.16,-62.8,[8.41,6.45,6.19,6.32,6.3,6.28,10.15,11.58,6.95,6.72,7.28,7.92]],"LT-027":[8.07,1,15.0,-27.1,[15.61,14.18,14.77,10.63,10.36,9.71,9.65,10.39,10.08,10.77,12.97,14.4]],"LT-028":[0.14,9,0.33,241.9,[0.66,1.03,0.0,0.0,0.0,0.0,0.0,0.0,1.26,0.1,0.0,0.0]],"LT-029":[39.12,1,60.93,-44.9,[66.63,65.98,55.14,50.56,49.01,47.9,48.84,49.68,43.46,50.3,52.55,55.23]],"LT-030":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"LT-031":[0.0,6,0.0,null,[0.0,0.0,0.0,0.03,0.02,0.14,0.02,0.0,0.0,0.0,0.0,0.0]],"LT-032":[2.1,11,4.47,-48.1,[4.61,3.31,3.41,2.98,4.01,3.91,3.38,3.76,4.16,3.25,4.74,4.33]],"LT-033":[120.88,5,199.3,-56.0,[206.29,236.18,322.65,338.36,339.02,275.97,252.36,207.09,222.76,247.18,248.32,192.3]],"LT-034":[1.39,9,0.12,null,[0.21,0.13,0.23,0.04,0.05,0.02,0.04,0.1,3.36,2.36,0.16,0.04]],"LT-035":[0.79,8,3.77,-97.1,[5.08,4.57,4.79,1.92,1.11,1.44,2.12,10.14,1.85,1.19,1.74,2.45]],"LT-036":[0.32,12,0.66,-76.3,[0.46,0.65,0.45,0.38,0.24,0.39,0.29,0.13,0.3,0.21,0.79,0.86]],"LT-037":[25.89,2,26.27,-38.6,[27.78,36.68,29.86,22.86,23.17,22.07,27.19,26.11,22.35,21.37,22.99,24.76]],"LT-038":[194.33,2,380.28,-40.0,[416.25,441.81,386.4,324.0,286.23,265.97,277.18,271.91,242.59,256.82,324.88,344.32]],"LT-039":[1.78,3,0.04,null,[0.08,4.93,16.56,7.22,0.26,0.0,0.0,0.02,0.0,0.0,0.0,0.0]],"LT-040":[15.78,3,44.51,-51.6,[69.48,32.51,108.24,63.5,7.53,4.7,0.86,0.53,0.19,1.17,9.79,19.54]],"LT-041":[2.54,3,7.08,-32.5,[7.37,7.21,9.5,6.77,4.23,3.07,4.15,3.03,2.2,2.53,6.94,6.78]],"LT-042":[1718.98,12,1485.17,35.8,[1332.54,1319.25,1347.19,914.77,910.12,720.08,826.45,987.78,851.02,922.48,764.87,1637.81]],"LT-043":[26.31,3,37.48,-4.2,[39.32,39.63,43.78,41.61,40.0,35.96,34.25,36.42,39.96,40.02,39.38,35.63]],"LT-044":[11.67,3,17.86,-28.1,[18.73,17.62,19.73,15.9,16.73,16.92,17.95,17.39,15.92,14.83,17.43,16.98]],"LT-045":[7.33,4,2.13,-68.5,[2.3,7.51,28.25,44.17,29.24,18.97,10.28,5.13,2.4,1.88,2.17,1.96]],"LT-046":[0.01,3,0.0,null,[0.0,0.0,0.03,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"LT-047":[69.2,8,34.62,60.6,[38.61,44.84,51.82,53.93,58.41,58.7,61.38,76.64,72.53,58.5,35.06,30.62]],"LT-048":[7.72,7,7.44,16.2,[7.93,8.52,11.4,11.47,13.16,12.66,15.12,13.71,6.93,5.65,7.96,6.94]],"LT-049":[11.43,5,9.5,28.0,[10.0,11.91,15.43,18.12,20.72,20.66,18.96,16.12,19.84,15.75,12.24,9.01]],"LT-050":[102.47,5,29.52,-18.3,[30.33,40.9,99.82,182.35,244.66,244.32,158.87,113.72,127.31,82.09,48.26,28.72]],"LT-051":[0.06,8,0.0,null,[0.0,0.02,0.0,0.02,0.0,0.02,0.02,0.24,0.0,0.0,0.0,0.0]],"LT-052":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"LT-053":[770.57,5,147.45,-17.8,[153.04,234.57,722.59,1673.82,2331.19,2282.21,1154.26,664.71,424.95,282.83,165.04,141.86]],"LT-054":[21.7,6,9.94,-78.1,[5.95,3.64,7.44,34.77,88.51,108.41,59.27,52.95,51.34,104.66,42.98,13.92]],"LT-055":[1.03,6,0.08,-32.2,[0.15,0.05,0.14,1.39,4.42,6.12,3.85,1.21,0.04,0.06,0.02,0.02]],"LT-056":[10.77,3,18.64,-27.3,[18.49,18.3,19.78,16.2,18.25,15.71,15.39,15.16,15.29,15.79,18.44,18.8]],"LT-057":[0.65,4,1.55,1088.0,[1.48,1.36,2.49,3.49,2.75,2.55,2.37,1.45,2.34,3.48,2.71,1.63]],"LT-058":[0.0,5,0.0,null,[0.0,0.0,0.0,0.0,0.09,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"LT-059":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"LT-060":[0.02,4,0.07,-100.0,[0.12,0.07,0.33,0.58,0.32,0.22,0.07,0.02,0.13,0.16,0.18,0.02]],"LT-061":[0.03,7,0.0,-100.0,[0.0,0.0,0.0,0.0,0.37,0.88,1.14,0.14,0.02,0.0,0.04,0.0]],"LT-062":[185.97,7,43.09,-49.1,[31.2,25.51,33.22,83.17,250.09,613.12,1034.68,632.74,259.99,195.39,137.61,54.97]],"LT-063":[0.42,7,0.0,-100.0,[0.0,0.0,0.0,0.0,0.07,2.77,19.06,1.11,0.0,0.02,0.0,0.0]],"LT-064":[3.34,8,9.01,-50.6,[9.06,9.24,8.68,9.93,9.26,6.27,9.54,14.08,13.2,8.77,12.07,8.96]],"LT-065":[11.62,8,0.0,-22.6,[0.0,0.0,0.0,0.0,0.83,8.74,47.51,58.61,15.3,2.04,0.0,0.0]],"LT-066":[60.25,6,4.71,38.4,[3.77,5.06,13.46,57.95,157.88,251.46,141.95,47.65,67.66,79.18,40.02,5.66]],"LT-067":[0.0,6,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.1,0.06,0.0,0.0,0.0,0.0,0.0]],"LT-068":[0.1,6,0.61,-88.6,[0.59,0.49,1.79,2.06,2.19,2.79,2.44,1.96,2.25,1.12,1.08,0.64]],"LT-069":[4.04,7,0.0,-4.0,[0.0,0.0,0.09,0.3,0.84,9.41,35.94,30.18,3.93,0.43,0.02,0.0]],"LT-070":[2.25,7,0.83,79.4,[0.7,0.56,0.36,0.73,1.11,1.67,10.93,10.35,2.96,0.75,0.66,0.97]],"LT-071":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"LT-072":[7.1,1,16.73,-43.1,[18.07,15.71,10.41,13.18,10.97,13.75,15.74,16.21,11.73,12.7,14.02,15.39]],"LT-073":[15.5,9,23.98,-78.3,[24.38,23.8,21.94,23.29,25.57,27.81,35.94,34.77,40.77,25.82,26.8,23.57]],"LT-074":[32.17,6,0.74,99.7,[0.19,0.11,0.51,5.47,60.46,114.52,79.54,28.31,3.26,0.6,0.7,1.29]],"LT-075":[2.9,9,2.82,-6.4,[2.63,2.7,4.01,9.01,9.87,9.68,11.6,11.37,11.81,8.99,5.9,3.01]],"LT-076":[3.5,4,8.84,-83.9,[10.12,8.57,12.35,13.58,9.99,7.39,10.07,10.73,9.11,7.41,8.45,7.56]],"LT-077":[0.52,8,0.08,288.2,[0.04,0.03,0.32,1.12,1.21,2.84,3.13,6.07,2.42,0.8,0.37,0.12]],"LT-078":[145.72,6,68.22,-17.3,[59.33,56.11,82.81,139.45,297.41,386.01,266.74,252.94,238.79,164.48,122.83,77.1]],"LT-079":[0.35,10,0.56,-21.5,[0.13,0.02,0.0,0.0,0.02,0.02,0.02,0.04,1.0,4.75,4.74,1.0]],"LT-080":[43.67,7,2.87,-38.6,[2.52,2.04,6.68,24.53,68.81,202.03,298.59,175.6,59.75,20.18,7.64,3.22]],"LT-081":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"LT-082":[0.0,1,0.11,null,[0.22,0.2,0.09,0.05,0.02,0.0,0.02,0.0,0.02,0.0,0.02,0.0]],"LT-083":[0.01,1,0.03,null,[0.06,0.02,0.0,0.0,0.02,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"LT-084":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"LT-085":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"LT-086":[0.0,9,0.0,-100.0,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.37,0.3,0.0,0.0]],"LT-087":[7.03,10,5.56,-86.9,[6.03,4.44,3.33,2.0,2.78,2.11,3.64,6.49,7.39,8.85,5.24,5.1]],"LT-088":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"LT-089":[60.02,5,39.39,-22.9,[40.77,43.57,66.45,89.73,133.44,118.66,103.41,91.79,103.84,71.55,48.1,38.01]],"LT-090":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"LT-091":[0.18,12,0.2,-100.0,[0.04,0.09,0.16,0.06,0.0,0.08,0.06,0.04,0.24,0.11,0.28,0.36]],"LT-092":[0.13,11,0.1,-100.0,[0.09,0.1,0.2,0.21,0.1,0.06,0.07,0.02,0.08,0.14,0.26,0.12]],"LT-093":[10.52,12,18.57,-28.7,[17.87,12.83,9.09,6.15,5.28,4.7,4.42,4.07,5.21,8.96,18.46,19.27]],"LT-094":[205.38,11,592.64,-24.3,[384.57,152.51,79.97,49.58,41.16,32.55,27.57,37.75,106.22,537.61,1066.6,800.71]],"LT-095":[0.7,11,3.65,-77.7,[2.55,0.58,0.28,0.0,0.06,0.0,0.0,0.02,0.3,6.85,10.5,4.76]],"LT-096":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"LT-097":[0.01,10,0.0,33.3,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.03,0.04,0.02,0.0]],"LT-098":[3.26,10,4.67,-33.9,[4.08,3.5,3.0,2.69,3.94,5.67,3.46,3.01,6.6,14.84,9.93,5.26]],"LT-099":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"LT-100":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BF-001":[341.88,12,1265.07,-20.5,[542.67,593.25,207.96,42.09,119.27,233.84,59.81,61.31,33.72,32.48,363.2,1987.46]],"BF-002":[506.89,12,858.72,4.8,[601.47,443.66,443.27,395.66,386.48,379.38,444.86,454.34,458.21,614.63,856.84,1115.97]],"BF-003":[525.59,12,2341.83,-14.1,[1927.16,153.79,10.19,2.23,3.99,3.83,7.87,11.53,37.03,270.67,1679.4,2756.5]],"BF-004":[1094.08,7,953.15,-11.9,[813.66,600.14,522.44,452.47,617.46,1940.36,2214.74,994.61,568.13,746.18,805.14,1092.64]],"BF-005":[157.56,11,247.96,-10.8,[136.52,113.56,139.62,106.71,181.22,164.99,159.09,141.77,150.58,108.95,417.19,359.4]],"BF-006":[8.45,7,7.68,-30.2,[8.36,9.44,8.57,8.85,10.12,13.69,19.82,16.67,8.41,6.23,7.02,7.01]],"BF-007":[169.35,6,226.73,-39.0,[310.43,226.1,283.06,266.03,293.3,400.26,227.68,159.55,169.99,103.87,140.26,143.03]],"BF-008":[0.42,4,0.65,-97.0,[0.91,0.59,1.37,1.52,1.1,0.95,0.9,0.64,0.63,0.5,0.42,0.38]],"BF-009":[504.15,1,798.04,-34.0,[892.72,688.42,709.57,590.08,541.84,569.42,621.84,579.4,564.88,535.37,631.1,703.36]],"BF-010":[2.07,12,12.46,-36.8,[12.09,3.45,0.64,0.15,0.2,0.12,0.11,0.15,0.48,1.84,5.58,12.83]],"BF-011":[272.6,1,447.2,-18.4,[518.43,376.37,374.57,326.95,325.55,299.0,299.64,307.67,273.96,293.45,356.21,375.98]],"BF-012":[567.73,1,630.93,-58.5,[754.91,540.19,674.25,544.46,391.19,541.93,559.61,690.14,465.19,359.58,397.34,506.95]],"BF-013":[361.73,1,427.74,-15.5,[468.15,395.37,392.81,342.25,364.93,366.5,390.01,390.95,359.5,381.53,369.44,387.33]],"BF-014":[44.1,11,53.91,-62.0,[50.11,38.94,20.54,6.2,5.65,6.07,10.21,7.51,6.25,34.14,114.08,57.7]],"BF-015":[1010.36,1,965.7,-10.8,[1394.16,1040.97,772.04,1120.59,749.06,789.33,877.76,791.33,678.33,608.14,630.55,537.24]],"BF-016":[161.35,12,124.16,95.8,[88.45,78.49,90.24,68.3,62.1,47.3,44.37,72.04,115.43,95.82,118.84,159.88]],"BF-017":[68.21,1,152.72,26.2,[236.5,152.8,40.89,40.83,83.9,33.7,39.29,40.39,36.34,38.69,55.33,68.93]],"BF-018":[15.08,11,18.54,-35.4,[16.65,15.57,22.58,21.37,18.71,15.91,19.81,16.35,15.69,16.65,23.81,20.43]],"BF-019":[3423.78,1,16831.69,-1.4,[33429.5,8092.99,275.39,63.5,233.85,51.33,24.91,16.38,20.39,32.62,68.9,233.83]],"BF-020":[18.03,1,265.77,1732.7,[470.18,103.36,26.77,19.58,30.02,10.99,11.41,11.46,10.14,13.1,28.44,61.36]],"BF-021":[87.19,1,371.38,13.5,[667.98,215.19,30.62,14.76,37.11,13.71,12.62,13.55,15.74,21.67,38.7,74.77]],"BF-022":[35.1,1,261.16,-76.6,[478.35,128.5,17.85,8.4,19.71,4.39,5.0,4.95,5.48,7.45,22.52,43.97]],"BF-023":[22.66,1,92.21,-39.2,[137.41,54.62,21.37,7.78,10.53,8.2,21.26,9.7,10.66,10.96,26.73,47.01]],"BF-024":[10.22,1,45.54,-62.8,[66.51,30.66,8.89,6.65,20.36,4.84,3.93,3.52,3.6,4.93,11.46,24.57]],"BF-025":[13.67,3,21.89,-53.8,[26.39,33.94,34.83,21.11,16.23,15.95,15.48,15.17,14.32,11.24,18.64,17.4]],"BF-026":[151.3,4,111.33,86.5,[156.21,106.66,129.57,323.65,279.68,151.81,145.62,137.23,120.82,101.99,51.86,66.44]],"BF-027":[24.22,1,136.42,-75.8,[257.11,72.23,10.81,8.56,11.63,3.45,3.95,3.62,3.28,3.56,8.72,15.72]],"BF-028":[299.49,3,208.65,-7.6,[362.69,771.93,1177.47,371.63,164.31,140.85,40.68,10.53,3.7,3.21,11.35,54.61]],"BF-029":[2226.81,2,3450.38,-28.3,[3348.48,4476.9,2358.34,1729.32,1637.85,1618.27,1751.78,1533.66,1256.03,1411.16,2049.23,3552.27]],"BF-030":[101.19,3,127.67,-29.1,[130.22,138.99,615.07,281.55,115.53,91.19,71.77,53.5,51.09,39.48,55.96,125.12]],"BF-031":[1091.89,2,1238.87,-29.0,[1592.31,2094.15,1844.81,1598.78,1307.56,1085.4,1204.81,1013.84,863.25,634.42,656.59,885.43]],"BF-032":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BF-033":[104.21,1,68.48,214.2,[99.05,59.81,86.3,75.03,74.69,52.29,48.34,51.7,50.79,41.41,38.94,37.91]],"BF-034":[970.49,1,970.49,8.2,[1141.37,922.61,905.12,815.08,803.21,823.56,843.55,807.01,815.85,746.62,706.09,799.61]],"BF-035":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BF-036":[194.81,1,284.24,-38.2,[325.29,244.0,269.42,236.72,212.21,198.42,219.93,216.0,211.12,174.32,220.02,243.19]],"BF-037":[43.22,9,29.45,91.0,[22.68,41.6,107.74,17.35,46.84,49.2,25.07,97.28,130.47,25.5,36.21,36.22]],"BF-038":[3.36,10,3.38,-96.9,[3.52,2.65,5.65,6.6,7.84,7.89,7.88,8.01,10.54,11.33,8.87,3.25]],"BF-039":[68.67,1,106.98,-64.0,[122.94,106.71,100.48,96.05,96.38,102.63,107.21,84.22,73.25,74.9,93.16,91.02]],"BF-040":[1623.4,1,2058.53,-22.8,[2059.83,1763.37,1888.45,1698.93,1633.26,1649.35,1896.07,1897.67,1799.18,1702.12,2010.36,2057.24]],"BF-041":[1314.11,1,2334.36,-17.7,[2614.1,2283.62,2478.74,2027.36,1989.66,1894.58,1826.2,1560.92,1596.06,1401.05,2125.37,2054.63]],"BF-042":[1142.96,1,1600.82,-28.1,[1724.02,1534.07,1433.88,1272.86,1256.55,1368.03,1305.06,1433.19,1358.95,1270.43,1263.48,1477.61]],"BF-043":[7.76,1,9.78,-14.1,[10.77,6.65,7.32,6.79,7.32,6.69,7.82,8.03,7.23,5.43,7.71,8.79]],"BF-044":[4.9,6,16.15,-98.4,[19.14,11.38,22.7,22.1,21.23,28.25,23.72,10.9,10.7,6.07,18.03,13.16]],"BF-045":[19.73,4,20.21,-47.3,[23.4,25.52,35.67,140.84,96.92,24.72,16.77,12.53,12.2,10.5,16.65,17.02]],"BF-046":[511.82,1,742.62,-4.8,[823.42,759.85,730.64,596.03,543.39,499.97,506.02,521.92,488.62,526.37,577.06,661.81]],"BF-047":[0.02,3,0.01,null,[0.02,0.02,0.04,0.0,0.0,0.0,0.02,0.02,0.0,0.02,0.0,0.0]],"BF-048":[1232.96,1,1418.56,-9.2,[1664.88,1263.93,1256.49,1204.64,1370.16,1076.83,1076.78,1280.3,1163.65,811.88,995.35,1172.24]],"BF-049":[298.0,1,552.39,-39.2,[642.58,488.65,494.32,510.53,485.14,449.23,531.83,520.71,461.02,407.73,433.71,462.2]],"BF-050":[2.35,11,1.37,-51.6,[0.86,0.3,0.25,0.32,0.32,1.04,2.34,1.26,3.04,4.82,5.76,1.88]],"BF-051":[10.68,1,16.89,-49.5,[17.49,16.1,14.38,14.44,13.04,13.33,13.42,14.89,14.53,14.69,15.93,16.3]],"BF-052":[10.04,7,30.79,-86.3,[44.55,63.61,30.79,17.12,22.32,220.11,270.91,53.24,16.66,14.29,17.97,17.04]],"BF-053":[1170.89,5,308.44,-23.0,[439.85,328.52,412.37,1688.97,12039.5,748.8,177.62,156.6,91.7,120.33,109.75,177.04]],"BF-054":[1737.17,5,1054.94,-30.7,[910.72,1159.87,4750.27,1580.93,5802.05,1493.29,942.14,1555.44,2120.61,392.71,1190.46,1199.16]],"BF-055":[362.76,5,292.86,-68.1,[356.28,327.8,786.25,804.03,2663.93,616.35,400.55,1841.9,265.99,128.91,192.16,229.44]],"BF-056":[374.0,5,81.97,-64.0,[86.71,72.32,182.17,419.86,2938.78,1576.54,178.34,82.37,125.38,38.35,58.56,77.24]],"BF-057":[272.31,2,343.88,-30.0,[576.66,812.91,285.35,150.53,232.33,284.26,440.95,714.59,205.81,88.08,44.47,111.09]],"BF-058":[1.93,9,0.14,80.5,[0.21,0.15,0.02,0.0,0.7,0.6,1.47,2.04,3.5,2.87,0.4,0.08]],"BF-059":[0.0,4,0.0,null,[0.0,0.0,0.0,0.02,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BF-060":[33.77,3,31.21,224.8,[35.79,42.39,54.09,46.17,38.38,36.6,34.86,30.21,28.78,25.63,23.21,26.63]],"BF-061":[102.38,7,124.47,-44.2,[142.27,96.3,105.79,96.77,105.62,185.27,487.53,195.29,122.01,99.73,169.21,106.66]],"BF-062":[0.66,7,0.0,-46.2,[0.0,0.02,0.09,0.12,0.57,3.78,5.82,4.03,3.23,2.37,0.47,0.0]],"BF-063":[273.39,8,211.47,-51.2,[200.98,194.01,202.87,195.62,184.22,180.16,213.57,651.59,571.21,223.41,218.14,221.97]],"BF-064":[319.43,2,683.91,-48.8,[711.91,718.41,714.98,580.51,584.76,514.93,514.7,473.47,428.62,450.66,715.95,655.91]],"BF-065":[4.4,1,7.42,-47.7,[9.69,5.88,5.9,4.22,5.68,3.56,3.61,4.55,4.89,6.46,4.75,5.16]],"BF-066":[687.73,1,1303.12,-41.0,[1461.96,995.19,1198.39,884.61,747.73,779.21,872.43,781.31,781.3,790.42,953.15,1144.28]],"BF-067":[0.28,3,0.0,18.3,[0.0,0.5,1.15,0.37,0.11,0.02,0.11,0.32,0.28,0.04,0.07,0.0]],"BF-068":[6.79,10,3.47,-93.5,[3.12,2.51,5.43,3.24,4.64,9.83,9.93,7.57,4.7,20.7,4.26,3.82]],"BF-069":[248.04,7,46.37,-34.8,[37.17,22.57,24.48,23.82,36.72,48.04,1367.21,216.01,1171.54,294.29,88.9,55.56]],"BF-070":[1.39,8,0.0,-48.1,[0.0,0.0,0.0,0.0,0.4,1.58,8.21,9.62,2.0,0.06,0.0,0.0]],"BF-071":[112.3,9,134.17,-94.3,[118.46,105.38,111.65,262.0,249.61,146.73,126.35,246.49,384.42,139.77,164.72,149.89]],"BF-072":[0.01,8,0.01,-100.0,[0.0,0.0,0.02,0.0,0.0,0.0,0.02,0.1,0.0,0.04,0.02,0.02]],"BF-073":[2.93,7,0.92,461.8,[1.34,1.21,0.92,0.55,0.56,0.39,5.09,3.84,2.09,1.04,0.67,0.49]],"BF-074":[174.89,2,787.06,10.2,[894.05,3316.85,1721.92,753.25,685.27,502.19,506.21,488.89,475.14,472.84,274.67,680.07]],"BF-075":[0.09,11,0.25,-100.0,[0.21,0.2,0.15,0.1,0.02,0.11,0.09,0.17,0.02,0.02,0.34,0.29]],"BF-076":[5.13,1,12.02,-61.0,[12.68,11.06,12.66,10.25,10.12,10.5,10.99,9.55,8.72,9.01,11.98,11.36]],"BF-077":[112.63,8,46.09,-37.1,[44.84,29.69,29.28,28.74,42.54,39.68,71.66,1115.42,303.53,107.59,59.01,47.34]],"BF-078":[894.43,8,687.82,-50.6,[165.72,76.73,183.23,466.58,1761.72,4959.8,2505.31,7104.2,443.89,193.6,505.8,1209.91]],"BF-079":[24.79,3,28.7,-65.4,[35.3,36.59,182.74,45.67,60.81,24.98,16.65,13.02,10.01,7.47,13.93,22.1]],"BF-080":[29.97,10,25.72,-54.7,[23.4,4.8,2.09,1.4,0.05,0.1,0.51,8.24,142.69,851.73,204.04,28.04]],"BF-081":[51.35,10,37.35,203.7,[38.22,38.08,41.38,41.89,36.11,31.55,29.51,36.19,40.93,112.93,32.04,36.48]],"BF-082":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BF-083":[49.7,9,0.52,-69.2,[1.04,0.54,0.0,0.0,0.02,0.62,16.34,154.42,697.18,100.36,0.3,0.0]],"BF-084":[0.74,8,1.38,-99.1,[2.61,14.37,7.51,0.78,8.38,5.38,12.18,39.14,10.31,4.98,4.22,0.15]],"BF-085":[7.45,3,10.73,-51.8,[3.58,7.37,18.04,2.4,6.25,9.47,5.44,16.8,13.57,5.94,12.61,17.89]],"BF-086":[0.13,9,0.0,-69.6,[0.0,0.0,0.0,0.0,0.0,0.0,0.6,0.02,2.92,0.0,0.1,0.0]],"BF-087":[153.16,12,247.62,-19.4,[196.68,205.94,91.09,70.37,54.8,114.47,68.96,90.05,62.29,61.26,119.51,298.57]],"BF-088":[2.01,12,12.44,-95.3,[8.65,3.2,3.26,2.3,1.13,1.22,1.16,0.73,1.21,2.8,7.87,16.23]],"BF-089":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BF-090":[101.61,1,110.43,-7.0,[124.2,111.51,109.49,99.73,103.21,101.21,98.53,95.31,88.09,96.23,87.48,96.65]],"BF-091":[0.01,1,0.1,-100.0,[0.2,0.07,0.07,0.02,0.02,0.1,0.02,0.0,0.0,0.02,0.02,0.0]],"BF-092":[3.1,8,4.17,33.0,[4.47,9.14,8.54,6.97,9.16,9.37,6.86,11.82,6.13,5.49,5.04,3.88]],"BF-093":[4.85,10,4.86,-93.2,[5.55,0.37,0.0,0.02,0.02,0.0,0.02,0.29,10.44,64.45,23.63,4.17]],"BF-094":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BF-095":[12.81,12,34.56,-45.6,[30.18,20.09,12.03,9.16,13.26,10.1,10.93,8.47,8.9,11.38,18.64,38.94]],"BF-096":[0.0,0,0.0,null,[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]],"BF-097":[363.48,3,666.33,-55.7,[886.22,708.81,1097.96,834.83,590.6,548.83,633.53,593.97,351.6,286.34,339.09,446.43]],"BF-098":[78.87,1,299.84,-81.4,[355.48,238.06,223.97,147.91,159.56,163.93,169.0,171.88,126.47,116.27,210.77,244.19]],"BF-099":[12.62,2,29.24,-5.7,[31.78,34.59,27.57,20.61,22.32,21.03,19.71,18.19,18.3,21.71,28.49,26.7]],"BF-100":[0.11,7,0.22,100.0,[0.35,0.03,0.06,0.05,0.12,0.09,0.87,0.04,0.02,0.02,0.02,0.1]]},"trendMeta":{"anchor":"텃밭","fetched":"2026-11-09"}};
+
+// ------------------------------------------------------------------ 기본 값
+const TOPIC = Object.fromEntries(DATA.topics.map(t => [t.key, t]));
+const KW = new Map(DATA.keywords.map(r => {
+  const [id, topic, month, week, category, keyword, title, intent, peak, priority, monetize, status] = r;
+  return [id, { id, topic, month, week, category, keyword, title, intent, peak, priority, monetize, status, builtin: true }];
+}));
+// 화자(문체) 버튼: 설정 파일 [site] voices 순서대로. 첫 번째가 기본
+const VOICE = Object.fromEntries(DATA.voices.map(v => [v.key, v]));
+const voiceOf = key => VOICE[key] || DATA.voices[0];
+// 키워드를 고르면: 이미 쓴 초안의 화자 → 주제의 기본 화자 → 지금 화자 순으로 정함
+const voiceFor = (id, topic) => [state.drafts[id]?.voice, TOPIC[topic || keyword(id)?.topic]?.voice].find(v => v && VOICE[v]) || state.voice;
+const STATUS_LABEL = { todo: "예정", draft: "초안", published: "발행", skip: "건너뜀" };
+// 데이터랩 검색 추이: id -> [최근1년 지수, 최다 달, 다음 두 달 지수, 작년 대비 %, 1~12월 평균]
+const TREND = DATA.trends || {};
+const HAS_TRENDS = Object.keys(TREND).length > 0;
+// shape: 한 달이라도 검색이 잡혔는지. volume < 1 이어도 shape 가 있으면 어느 달에 찾는지는 알 수 있음
+const trendOf = id => { const t = TREND[id]; return t ? { volume: t[0], peak: t[1], next2: t[2], yoy: t[3], byMonth: t[4], shape: t[4].some(v => v > 0) } : null; };
+const fmtVol = v => v >= 10 ? Math.round(v).toString() : v >= 1 ? v.toFixed(1) : v > 0 ? "1 미만" : "0";
+const INTENT_GUIDE = {
+  "정보": "검색한 사람이 바로 따라 할 수 있게 시기·방법·순서를 구체적으로 정리한다.",
+  "문제해결": "증상 → 원인 → 지금 할 수 있는 대처 → 예방 순서로 쓴다.",
+  "비교": "첫머리에 비교표를 두고, 어떤 사람에게 어느 쪽이 맞는지 결론을 분명히 낸다.",
+  "구매": "고르는 기준과 사기 전 체크리스트를 중심으로 쓰고, 특정 상품을 과장해 추천하지 않는다.",
+  "비용": "비용을 좌우하는 요소를 나눠 설명하고, 금액은 범위로만 쓰되 확실하지 않으면 확인 필요로 표시한다.",
+  "경험": "운영자의 경험 메모를 중심으로 이야기처럼 쓰고, 독자가 가져갈 교훈으로 마무리한다.",
+};
+const COUPANG = "이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.";
+const today = new Date();
+const NOW_MONTH = today.getMonth() + 1;
+const WOM = Math.min(4, Math.floor((today.getDate() - 1) / 7) + 1);
+
+const state = {
+  topic: "all", month: NOW_MONTH, selected: null,
+  kw: {},        // id -> {status, memo, postUrl, custom}
+  drafts: {},    // id -> draft
+  voice: DATA.voices[0].key, tier: "default",
+  generating: false, ctl: null, streamText: "", editing: false, ownForm: false,
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const lsGet = k => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+function keyword(id) {
+  const base = KW.get(id) || state.kw[id]?.custom;
+  if (!base) return null;
+  const s = state.kw[id] || {};
+  return { ...base, id, status: s.status || base.status || "todo", memo: s.memo || "", postUrl: s.postUrl || "", updatedAt: s.updatedAt || "" };
+}
+function allKeywords() {
+  const ids = new Set([...KW.keys(), ...Object.keys(state.kw).filter(id => state.kw[id]?.custom)]);
+  return [...ids].map(keyword).filter(Boolean);
+}
+const monthOffset = (m, now) => ((m - now) % 12 + 12) % 12;
+function isDue(k) {
+  if (k.status !== "todo") return false;
+  const off = monthOffset(k.month, NOW_MONTH);
+  return (off === 11 && monthOffset(k.peak, NOW_MONTH) <= 2) || (off === 0 && k.week <= WOM);
+}
+
+// ------------------------------------------------------------------ 저장소 (db 또는 이 기기)
+const Store = {
+  mode: "local", db: null, timers: {},
+  async init() {
+    const local = lsGet("glgongbang") || {};
+    state.kw = local.kw || {}; state.drafts = local.drafts || {};
+    render();
+    let db = null, user = null;
+    try { [db, user] = await Promise.all([claude.use("db"), claude.use("user")]); } catch {}
+    const canEdit = user ? await user.canEdit().catch(() => null) : null;
+    if (!db || canEdit === false) {
+      note(db ? "보기 권한으로 열려 있어요. 메모와 초안은 이 기기에만 저장됩니다." : "", "info");
+      return;
+    }
+    this.db = db; this.mode = "db";
+    $("save-state").textContent = "불러오는 중…";
+    const slow = setTimeout(() => { $("save-state").textContent = "저장소 응답이 늦어요"; }, 10000);
+    db.collection("kw").onSnapshot(snap => {
+      clearTimeout(slow);
+      const next = {};
+      snap.docs.forEach(d => { next[d.id] = d.data(); });
+      state.kw = next; $("save-state").textContent = "저장됨 · 모든 기기에서 같이 보여요";
+      render();
+    }, () => { clearTimeout(slow); this.fallback(); });
+    db.collection("drafts").onSnapshot(snap => {
+      const next = {};
+      snap.docs.forEach(d => { next[d.id] = d.data(); });
+      state.drafts = next;
+      if (!state.selected) {
+        const latest = Object.values(next).sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""))[0];
+        if (latest) state.selected = latest.kwId;
+      }
+      render();
+    }, () => this.fallback());
+  },
+  fallback() {
+    if (this.mode !== "db") return;
+    this.mode = "local"; this.db = null;
+    note("공유 저장소에 연결하지 못했어요. 지금부터는 이 기기에만 저장됩니다.", "warn");
+  },
+  persistLocal() { if (this.mode === "local") lsSet("glgongbang", { kw: state.kw, drafts: state.drafts }); },
+  async saveKw(id, patch) {
+    state.kw[id] = { ...(state.kw[id] || {}), ...patch, updatedAt: new Date().toISOString() };
+    this.persistLocal(); render();
+    if (this.mode === "db") {
+      try { await this.db.doc("kw/" + id).set({ ...state.kw[id] }); $("save-state").textContent = "저장됨 · 모든 기기에서 같이 보여요"; }
+      catch (e) { note("저장하지 못했어요 (" + (e?.code || "오류") + "). 잠시 후 다시 해 주세요.", "warn"); }
+    } else { $("save-state").textContent = "이 기기에 저장됨"; }
+  },
+  saveMemoSoon(id, memo) {
+    clearTimeout(this.timers[id]);
+    $("save-state").textContent = "메모 입력 중…";
+    this.timers[id] = setTimeout(() => this.saveKw(id, { memo }), 900);
+  },
+  async saveDraft(id, draft) {
+    state.drafts[id] = { ...draft, updatedAt: new Date().toISOString() };
+    this.persistLocal(); render();
+    if (this.mode === "db") {
+      try { await this.db.doc("drafts/" + id).set({ ...state.drafts[id] }); }
+      catch (e) { note("초안을 저장하지 못했어요 (" + (e?.code || "오류") + "). 본문을 복사해 두세요.", "warn"); }
+    }
+  },
+};
+
+function note(text, tone) {
+  const n = $("note");
+  n.hidden = !text; n.textContent = text || ""; n.dataset.tone = tone || "info";
+}
+
+// ------------------------------------------------------------------ 마크다운 → 네이버 미리보기 HTML
+const PH = /\[(사진|경험 추가|확인 필요|제휴):\s*([^\]]+)\]/g;
+const PH_ICON = { "사진": "📷", "경험 추가": "✍️", "확인 필요": "⚠️", "제휴": "🔗" };
+function inline(s) {
+  let t = esc(s);
+  t = t.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (m, label, url) => `<a href="${url}" target="_blank" rel="noopener">${label}</a>`);
+  t = t.replace(/\*\*([\s\S]+?)\*\*/g, "<strong>$1</strong>");
+  t = t.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>");
+  t = t.replace(PH, (m, kind, body) => `<span class="ph ph-${kind.slice(0, 2)}">${PH_ICON[kind]} ${kind}: ${body}</span>`);
+  return t;
+}
+function mdToHtml(md) {
+  const lines = String(md).replace(/\r/g, "").split("\n");
+  const out = []; let i = 0;
+  const isTableSep = l => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l);
+  const cells = l => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
+  while (i < lines.length) {
+    const l = lines[i];
+    if (!l.trim()) { i++; continue; }
+    let m;
+    if ((m = l.match(/^(#{1,3})\s+(.*)$/))) { const n = Math.max(2, m[1].length); out.push(`<h${n}>${inline(m[2])}</h${n}>`); i++; continue; }
+    if (/^\s*(-{3,}|\*{3,})\s*$/.test(l)) { out.push("<hr>"); i++; continue; }
+    if (l.includes("|") && i + 1 < lines.length && isTableSep(lines[i + 1])) {
+      const head = cells(l); i += 2; const rows = [];
+      while (i < lines.length && lines[i].includes("|") && lines[i].trim()) { rows.push(cells(lines[i])); i++; }
+      out.push(`<div class="tbl"><table><thead><tr>${head.map(c => `<th>${inline(c)}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${inline(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`);
+      continue;
+    }
+    if (/^>\s?/.test(l)) {
+      const buf = [];
+      while (i < lines.length && /^>\s?/.test(lines[i])) { buf.push(lines[i].replace(/^>\s?/, "")); i++; }
+      out.push(`<blockquote>${inline(buf.join("\n")).replace(/\n/g, "<br>")}</blockquote>`); continue;
+    }
+    if (/^\s*[-*]\s+/.test(l)) {
+      const buf = [];
+      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) { buf.push(lines[i].replace(/^\s*[-*]\s+/, "")); i++; }
+      out.push(`<ul>${buf.map(x => `<li>${inline(x)}</li>`).join("")}</ul>`); continue;
+    }
+    if (/^\s*\d+[.)]\s+/.test(l)) {
+      const buf = [];
+      while (i < lines.length && /^\s*\d+[.)]\s+/.test(lines[i])) { buf.push(lines[i].replace(/^\s*\d+[.)]\s+/, "")); i++; }
+      out.push(`<ol>${buf.map(x => `<li>${inline(x)}</li>`).join("")}</ol>`); continue;
+    }
+    const buf = [];
+    while (i < lines.length && lines[i].trim() && !/^(#{1,3}\s|>|\s*[-*]\s+|\s*\d+[.)]\s+)/.test(lines[i])
+           && !(lines[i].includes("|") && i + 1 < lines.length && isTableSep(lines[i + 1]))) { buf.push(lines[i]); i++; }
+    out.push(`<p>${inline(buf.join("\n")).replace(/\n/g, "<br>")}</p>`);
+  }
+  return out.join("\n");
+}
+function countPlaceholders(md) {
+  const c = { "사진": 0, "경험 추가": 0, "확인 필요": 0, "제휴": 0 };
+  for (const m of String(md).matchAll(PH)) c[m[1]]++;
+  return c;
+}
+
+// ------------------------------------------------------------------ 프롬프트
+function buildPrompt(k, voiceKey) {
+  const t = TOPIC[k.topic];
+  const v = voiceOf(voiceKey);
+  const memo = (k.memo || "").trim() || "(없음: 경험이 필요한 자리는 [경험 추가] 표시로 남겨 주세요)";
+  return `당신은 아래 운영자를 대신해 네이버 블로그 글 초안을 쓰는 작가입니다. 운영자가 초안을 검토하고 사진과 경험을 더해 발행합니다.
+
+[운영자] ${t.persona}${v.note ? "\n" + v.note : ""}
+[블로그 주제] ${t.name}
+[주요 독자] ${t.audience}
+
+글쓰기 원칙
+- 문체 가이드의 화자 목소리로, 정확하게 씁니다.
+- ${v.greeting ? `본문 첫 줄은 "${v.greeting}"로 시작합니다.` : "인사말 없이, 이 글이 다루는 상황을 소개하는 문단으로 시작합니다."}
+- 첫 문단에서 검색한 사람이 가장 궁금해할 답을 먼저 줍니다.
+- 소제목(##) 3~6개, 필요하면 번호 목록과 표를 씁니다. 표는 휴대폰에서 보이도록 4칸 이하로 만듭니다.
+- 본문 분량은 공백 포함 1,500~2,500자입니다.
+- 키워드는 제목, 첫 문단, 소제목 1~2곳에 자연스럽게 넣고 억지로 반복하지 않습니다.
+- 끝에 '자주 묻는 질문' 소제목과 질문 2~3개, 짧은 마무리 문단을 둡니다.
+
+지어내지 말 것 (가장 중요, 문체 가이드보다 우선)
+- 경험 메모에 없는 구체적 경험(날짜, 수량, 매출, 사건, 가족·고객 이야기)을 만들어내지 않습니다. 경험이 들어가면 좋은 자리에는 [경험 추가: 무엇을 쓰면 좋은지]라고 표시합니다.
+- 가격, 비율, 법령, 제도 요건, 한도, 신고 기한, 차량 사양처럼 바뀌거나 틀리기 쉬운 사실은 확실하지 않으면 단정하지 말고 [확인 필요: 무엇을 확인할지]라고 표시합니다.
+- 사진이 들어가면 좋은 자리에 [사진: 찍을 장면] 표시를 6~10개 넣습니다.
+- 제휴 상품을 소개하기 좋은 자리가 있으면 [제휴: 상품 종류] 표시를 1~2개 넣습니다. 상품명이나 링크는 쓰지 않습니다.
+- 본문에 광고 고지, 면책 문구는 넣지 않습니다. 필요한 문구는 프로그램이 따로 붙입니다.
+
+[문체 가이드]
+${v.text}
+
+[이번 글]
+- 핵심 키워드: ${k.keyword}
+- 제목 아이디어: ${k.title}
+- 분류: ${k.category}
+- 검색 의도: ${k.intent} → ${INTENT_GUIDE[k.intent] || INTENT_GUIDE["정보"]}
+- 발행 예정: ${k.month}월 ${k.week}주차 (검색이 가장 많은 달: ${trendOf(k.id)?.peak || k.peak}월${trendOf(k.id)?.peak ? ", 네이버 데이터랩 최근 3년 기준" : ""})
+- 수익 연결: ${k.monetize}
+- 운영자 경험 메모: ${memo}
+
+[출력 형식] 아래 형식 그대로, 다른 말 없이 씁니다.
+제목: (40자 이내, 키워드 포함)
+요약: (검색 결과에 보일 80~150자)
+태그: 태그1, 태그2, ... (5~10개)
+===본문===
+(마크다운 본문. 제목은 다시 쓰지 않음)
+===체크리스트===
+- (발행 전에 운영자가 확인하거나 채울 것. [확인 필요]·[경험 추가] 항목 요약 포함)`;
+}
+
+function parseOutput(text) {
+  const [head, rest = ""] = text.split("===본문===");
+  const [body = "", check = ""] = rest.split("===체크리스트===");
+  const field = name => (head.match(new RegExp("^\\s*" + name + "\\s*[:：]\\s*(.+)$", "m")) || [])[1]?.trim() || "";
+  return {
+    title: field("제목"),
+    meta: field("요약"),
+    tags: field("태그").split(/[,，]/).map(s => s.trim().replace(/^#/, "")).filter(Boolean),
+    body: body.trim(),
+    checklist: check.split("\n").map(s => s.replace(/^\s*[-*\d.)]+\s*/, "").trim()).filter(Boolean),
+    hasBody: rest.length > 0,
+  };
+}
+
+function finalizeBody(body, k) {
+  const parts = [];
+  if (String(k.monetize).startsWith("쿠팡")) parts.push("> " + COUPANG);
+  parts.push(body.trim());
+  const disc = TOPIC[k.topic]?.disclaimer;
+  if (disc) parts.push("---\n\n*" + disc + "*");
+  return parts.join("\n\n");
+}
+
+// ------------------------------------------------------------------ Claude 호출
+let samplePromise = null;
+const getSample = () => (samplePromise ??= (window.claude?.use ? claude.use("sample").catch(() => null) : Promise.resolve(null)));
+const ERR = {
+  not_granted: "Claude 사용을 허용하지 않아서 초안을 쓸 수 없어요. 페이지의 권한 메뉴에서 허용할 수 있어요.",
+  sampling_disabled: "이 계정에서는 Claude를 쓸 수 없어요.",
+  rate_limited: "요청이 많아 잠시 쉬어야 해요. 몇 분 뒤에 다시 눌러 주세요.",
+  session_expired: "claude.ai에 다시 로그인해 주세요.",
+  refused: "Claude가 이 내용으로는 쓰지 않았어요. 메모나 키워드를 바꿔 보세요.",
+  empty_completion: "답이 비어 있어요. 메모를 조금 줄여서 다시 해 보세요.",
+  prompt_too_large: "메모가 너무 길어요. 줄여서 다시 해 주세요.",
+};
+
+async function generate() {
+  if (!state.selected || state.generating) return;
+  // 방금 입력한 메모가 아직 저장 대기 중이면 먼저 반영
+  const memoEl = $("memo");
+  if (memoEl && memoEl.value !== (keyword(state.selected)?.memo || "")) {
+    clearTimeout(Store.timers[state.selected]);
+    await Store.saveKw(state.selected, { memo: memoEl.value });
+  }
+  const k = keyword(state.selected);
+  if (!k) return;
+  const sample = await getSample();
+  if (!sample) { note("이 화면에서는 Claude를 부를 수 없어요. claude.ai에서 이 페이지를 열어 주세요.", "warn"); return; }
+  state.generating = true; state.streamText = ""; state.editing = false;
+  state.ctl = new AbortController();
+  renderDesk();
+  try {
+    const res = await sample(buildPrompt(k, state.voice), {
+      signal: state.ctl.signal, modelTier: state.tier, cache: false,
+      onText: ({ text }) => { state.streamText = text; renderStream(); },
+    });
+    const p = parseOutput(res.text);
+    if (!p.body) throw { code: "format", text: res.text };
+    await Store.saveDraft(k.id, {
+      kwId: k.id, topic: k.topic, keyword: k.keyword,
+      title: p.title || k.title, meta: p.meta, tags: p.tags,
+      body: finalizeBody(p.body, k), checklist: p.checklist,
+      voice: state.voice, truncated: !!res.truncated,
+      createdAt: new Date().toISOString(),
+    });
+    if (k.status === "todo") await Store.saveKw(k.id, { status: "draft" });
+    note(res.truncated ? "글이 길어서 끝부분이 잘렸어요. 마무리를 직접 채우거나 메모를 줄여 다시 써 보세요." : "", "warn");
+  } catch (e) {
+    if (e?.code === "cancelled") note("멈췄어요. 다시 쓰려면 [초안 쓰기]를 눌러 주세요.", "info");
+    else if (e?.code === "format") note("답의 형식이 달라 저장하지 못했어요. 한 번 더 눌러 주세요.", "warn");
+    else note(ERR[e?.code] || "연결이 잠시 끊겼어요. 다시 눌러 주세요.", "warn");
+  } finally {
+    state.generating = false; state.ctl = null; state.streamText = "";
+    render();
+  }
+}
+
+// ------------------------------------------------------------------ 복사
+async function copyPost() {
+  const d = state.drafts[state.selected];
+  if (!d) return;
+  if (state.editing) { state.editing = false; renderDesk(true); }
+  const el = document.querySelector("#preview .post");
+  if (!el) return;
+  const html = el.innerHTML;
+  const plain = el.innerText;
+  const c = countPlaceholders(d.body);
+  const left = Object.entries(c).filter(([, n]) => n).map(([name, n]) => `[${name}] ${n}곳`).join(", ");
+  const warn = left ? ` 단, 아직 채우지 않은 표시(${left})도 같이 복사됐어요. 발행 전에 꼭 고치거나 지워 주세요.` : "";
+  $("copy-msg").dataset.tone = warn ? "warn" : "";
+  try {
+    if (window.ClipboardItem && navigator.clipboard?.write) {
+      await navigator.clipboard.write([new ClipboardItem({
+        "text/html": new Blob([html], { type: "text/html" }),
+        "text/plain": new Blob([plain], { type: "text/plain" }),
+      })]);
+    } else { await navigator.clipboard.writeText(plain); }
+    $("copy-msg").textContent = "복사했어요. 네이버 블로그 글쓰기 화면에 붙여넣으세요." + warn;
+  } catch {
+    const range = document.createRange(); range.selectNodeContents(el);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    let ok = false; try { ok = document.execCommand("copy"); } catch {}
+    $("copy-msg").textContent = (ok ? "복사했어요. 네이버 블로그 글쓰기 화면에 붙여넣으세요." : "본문을 선택해 두었어요. Ctrl+C(⌘+C)로 복사하세요.") + warn;
+  }
+}
+async function copyText(text, msg) {
+  try { await navigator.clipboard.writeText(text); $("copy-msg").textContent = msg; }
+  catch { $("copy-msg").textContent = "복사하지 못했어요. 직접 고치기 화면에서 선택해 복사하세요."; }
+}
+
+// ------------------------------------------------------------------ 화면 그리기
+function renderStats() {
+  const ks = allKeywords();
+  const box = $("stats"); box.innerHTML = "";
+  for (const t of DATA.topics) {
+    const mine = ks.filter(k => k.topic === t.key);
+    const n = s => mine.filter(k => k.status === s).length;
+    const div = document.createElement("div"); div.className = "stat";
+    div.innerHTML = `<b>${esc(t.label)}</b><span>초안 ${n("draft")} · 발행 ${n("published")} / ${mine.length}</span>`;
+    box.append(div);
+  }
+}
+
+function renderFilters() {
+  const chips = $("topic-chips"); chips.innerHTML = "";
+  for (const [key, label] of [["all", "전체"], ...DATA.topics.map(t => [t.key, t.label])]) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = label;
+    b.setAttribute("aria-pressed", state.topic === key);
+    b.onclick = () => { state.topic = key; render(); };
+    chips.append(b);
+  }
+  const months = $("months"); months.innerHTML = "";
+  for (let i = 0; i < 12; i++) {
+    const m = ((NOW_MONTH - 1 + i) % 12) + 1;
+    const b = document.createElement("button"); b.type = "button"; b.textContent = m + "월";
+    if (m === NOW_MONTH) b.className = "now";
+    b.setAttribute("aria-pressed", state.month === m);
+    b.onclick = () => { state.month = m; render(); };
+    months.append(b);
+  }
+}
+
+function kwButton(k) {
+  const li = document.createElement("li");
+  const b = document.createElement("button"); b.type = "button"; b.className = "kw";
+  b.setAttribute("aria-current", state.selected === k.id);
+  b.innerHTML = `<span class="wk">${k.custom ? "직접" : k.week + "주"} <span class="prio-${k.priority}">${esc(k.priority)}</span></span>
+    <span class="t"><b>${esc(k.keyword)}</b><small>${esc(TOPIC[k.topic]?.label || "")} · ${esc(k.title)}</small></span>
+    <span class="pill ${k.status}">${STATUS_LABEL[k.status] || k.status}</span>${(() => {
+      const tr = trendOf(k.id); if (!tr) return "";
+      if (!tr.shape) return `<span class="vol low">검색 아주 적음 · 월별 수치 없음</span>`;
+      return tr.volume < 1 ? `<span class="vol low">검색 적음 · 최다 ${tr.peak}월</span>`
+        : `<span class="vol">검색 지수 ${fmtVol(tr.volume)} · 최다 ${tr.peak}월</span>`;
+    })()}`;
+  b.onclick = () => {
+    state.selected = k.id; state.voice = voiceFor(k.id); state.editing = false; state.ownForm = false; note("");
+    render();
+    if (matchMedia("(max-width: 860px)").matches) $("desk-h").scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  li.append(b); return li;
+}
+
+function renderList() {
+  const list = $("kw-list"); list.innerHTML = "";
+  const inTopic = k => state.topic === "all" || k.topic === state.topic;
+  const ks = allKeywords().filter(inTopic);
+  const topicIdx = k => DATA.topics.findIndex(t => t.key === k.topic);
+  const rank = k => (monthOffset(k.month, NOW_MONTH) === 11 ? -1 : 0);
+  const order = (a, b) => rank(a) - rank(b) || a.week - b.week || a.priority.localeCompare(b.priority) || topicIdx(a) - topicIdx(b) || a.id.localeCompare(b.id);
+  const due = ks.filter(isDue).sort(order);
+  const groups = [];
+  if (HAS_TRENDS) {
+    const hot = ks.filter(k => k.status === "todo" && trendOf(k.id)?.volume >= 1)
+      .sort((a, b) => trendOf(b.id).next2 - trendOf(a.id).next2).slice(0, 6);
+    if (hot.length) groups.push(["지금 쓰면 좋은 글감 · 다음 두 달 검색이 많을 글", hot]);
+  }
+  if (state.month === NOW_MONTH && due.length) groups.push(["이번 주까지 쓸 글", due.slice(0, 6)]);
+  const custom = ks.filter(k => k.custom).sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
+  if (custom.length) groups.push(["직접 추가한 글", custom]);
+  groups.push([state.month + "월 키워드", ks.filter(k => !k.custom && k.month === state.month).sort(order)]);
+  let total = 0;
+  for (const [label, items] of groups) {
+    if (!items.length) continue;
+    const g = document.createElement("li"); g.className = "group-label"; g.textContent = label; list.append(g);
+    items.forEach(k => list.append(kwButton(k))); total += items.length;
+  }
+  $("cal-count").textContent = `${state.month}월 ${ks.filter(k => !k.custom && k.month === state.month).length}개`;
+}
+
+// 1~12월 검색 추이 막대 (최다 달만 강조, 발행 달은 글자로 표시)
+function trendBox(k) {
+  if (!HAS_TRENDS) return "";
+  const tr = trendOf(k.id);
+  const meta = DATA.trendMeta || {};
+  if (!tr) return `<div class="trend"><p class="trend-sum">캘린더에 없는 키워드라 검색 추이를 아직 받지 않았어요. Claude Code 대화창에 <b>"${esc(k.keyword)}" 검색 추이 확인해줘</b>라고 하면 데이터랩에서 찾아 드려요.</p></div>`;
+  if (!tr.shape) return `<div class="trend"><p class="trend-sum">이 문구(<b>${esc(k.keyword)}</b>)는 최근 3년 동안 검색이 네이버 데이터랩 집계 기준에 못 미쳐서 월별 그래프가 없어요. 이렇게 긴 문구는 보통 경쟁 글도 적어서, 그대로 검색한 사람에게 닿기 쉬워요. 성수기는 캘린더에 적은 <b>${k.peak}월</b>을 따랐어요.</p></div>`;
+  const low = tr.volume < 1;
+  const W = 360, H = 120, top = 16, base = 86, slot = W / 12, bw = Math.min(22, slot - 6);
+  const max = Math.max(...tr.byMonth, 0.0001);
+  const bars = tr.byMonth.map((v, i) => {
+    const h = Math.max(1.5, (v / max) * (base - top)), x = i * slot + (slot - bw) / 2, y = base - h, r = Math.min(4, h);
+    const fill = i + 1 === tr.peak ? "var(--leaf)" : "var(--bar)";
+    const d = `M${x},${base} V${y + r} Q${x},${y} ${x + r},${y} H${x + bw - r} Q${x + bw},${y} ${x + bw},${y + r} V${base} Z`;
+    return `<path d="${d}" fill="${fill}"></path>`;
+  }).join("");
+  const peakX = (tr.peak - 0.5) * slot, peakY = base - (tr.byMonth[tr.peak - 1] / max) * (base - top) - 5;
+  const labels = tr.byMonth.map((_, i) => {
+    const m = i + 1, on = m === tr.peak || m === k.month;
+    return `<text x="${(i + 0.5) * slot}" y="${base + 14}" text-anchor="middle" class="${on ? "on" : ""}">${m}</text>`;
+  }).join("");
+  const pub = k.custom ? "" : `<text x="${(k.month - 0.5) * slot}" y="${base + 28}" text-anchor="middle" class="on">발행</text>`;
+  const peakTag = `<text x="${(tr.peak - 0.5) * slot}" y="${base + 28 + (k.month === tr.peak && !k.custom ? 12 : 0)}" text-anchor="middle" class="on">최다</text>`;
+  const yoy = tr.yoy == null || low ? "" : ` · 작년 같은 때보다 <b>${tr.yoy > 0 ? "+" : ""}${Math.round(tr.yoy)}%</b>`;
+  return `<div class="trend" id="trend">
+    <div class="trend-h"><b>월별 검색 추이 (네이버 데이터랩)</b><span>${low ? "검색 적음 · 막대는 이 키워드 안에서 달끼리 비교" : `최근 3년 평균 · 기준 '${esc(meta.anchor || "")}' 1년 평균 = 100`}</span></div>
+    <svg viewBox="0 -4 ${W} ${H + 12}" role="img" aria-label="1월부터 12월까지 검색 지수. 가장 많은 달 ${tr.peak}월">
+      ${bars}
+      ${low ? "" : `<text x="${peakX}" y="${peakY}" text-anchor="middle" class="on">${fmtVol(tr.byMonth[tr.peak - 1])}</text>`}
+      <line x1="0" x2="${W}" y1="${base}" y2="${base}" stroke="var(--line)" stroke-width="1"></line>
+      ${labels}${pub}${peakTag}
+      <rect id="trend-hit" x="0" y="0" width="${W}" height="${base}" fill="transparent"></rect>
+    </svg>
+    <div class="tip" id="trend-tip" hidden></div>
+    <p class="trend-sum">${low ? `검색이 적은 문구예요 (기준 '${esc(meta.anchor || "")}'의 1% 미만). 그래도 찾는 사람은 <b>${tr.peak}월</b>에 가장 많아요` : `최근 1년 검색 지수 <b>${fmtVol(tr.volume)}</b> · 가장 많이 찾는 달 <b>${tr.peak}월</b>`}${yoy}${k.custom ? "" : ` · 발행 예정 <b>${k.month}월</b>`}</p>
+  </div>`;
+}
+function wireTrend(k) {
+  const tr = trendOf(k?.id), hit = $("trend-hit"), tip = $("trend-tip");
+  if (!tr || !hit || !tip) return;
+  const svg = hit.ownerSVGElement, box = $("trend");
+  const show = ev => {
+    const r = svg.getBoundingClientRect(), i = Math.max(0, Math.min(11, Math.floor((ev.clientX - r.left) / r.width * 12)));
+    const b = box.getBoundingClientRect();
+    tip.hidden = false; tip.textContent = `${i + 1}월 · 검색 지수 ${fmtVol(tr.byMonth[i])}`;
+    // 말풍선은 막대 바로 위에 (viewBox: y -4 ~ 128, 바닥 86, 위 16)
+    const max = Math.max(...tr.byMonth, 0.0001), barTop = 86 - (tr.byMonth[i] / max) * 70;
+    tip.style.left = (r.left - b.left + (i + 0.5) * r.width / 12) + "px";
+    tip.style.top = (r.top - b.top + ((barTop + 4) / 132) * r.height - 6) + "px";
+  };
+  hit.addEventListener("pointermove", show); hit.addEventListener("pointerdown", show);
+  hit.addEventListener("pointerleave", () => { tip.hidden = true; });
+}
+
+function previewHtml(draft) {
+  const center = voiceOf(draft.voice).center;
+  return `<div class="post${center ? " center" : ""}"><h1>${esc(draft.title)}</h1>${mdToHtml(draft.body)}</div>`;
+}
+
+function renderStream() {
+  const box = $("preview"); if (!box) return;
+  const p = parseOutput(state.streamText);
+  const k = keyword(state.selected);
+  const title = p.title || k?.title || "";
+  const body = p.hasBody ? p.body : "";
+  box.innerHTML = `<div class="post${voiceOf(state.voice).center ? " center" : ""}"><h1>${esc(title)}</h1>${body ? mdToHtml(body) : "<p>제목과 요약을 쓰는 중…</p>"}<span class="stream-cursor" aria-hidden="true"></span></div>`;
+  $("gen-status").textContent = `쓰는 중… ${body.length.toLocaleString()}자`;
+}
+
+function renderOwnForm(desk) {
+  desk.innerHTML = `
+    <div class="kw-head"><h3>캘린더에 없는 글 쓰기</h3><p class="idea">주제와 키워드를 적으면 캘린더 글처럼 초안을 만들어요.</p></div>
+    <form class="own-form" id="own-form">
+      <div><label class="lbl" for="own-topic">주제</label><select id="own-topic">${DATA.topics.map(t => `<option value="${t.key}">${esc(t.name)}</option>`).join("")}</select></div>
+      <div><label class="lbl" for="own-kw">핵심 키워드</label><input id="own-kw" type="text" required placeholder="${DATA.site.ownExample ? "예: " + esc(DATA.site.ownExample) : ""}"></div>
+      <div><label class="lbl" for="own-title">제목 아이디어</label><input id="own-title" type="text" placeholder="${DATA.site.ownTitleExample ? "예: " + esc(DATA.site.ownTitleExample) : ""}"></div>
+      <div class="row">
+        <div style="flex:1 1 140px"><label class="lbl" for="own-intent">검색 의도</label><select id="own-intent">${Object.keys(INTENT_GUIDE).map(x => `<option>${x}</option>`).join("")}</select></div>
+        <div style="flex:1 1 140px"><label class="lbl" for="own-money">수익 연결</label><input id="own-money" type="text" value="애드포스트"></div>
+      </div>
+      <div class="row"><button class="btn primary" type="submit">추가하고 쓰러 가기</button><button class="btn ghost" type="button" id="own-cancel">취소</button></div>
+    </form>`;
+  $("own-cancel").onclick = () => { state.ownForm = false; render(); };
+  $("own-form").onsubmit = async ev => {
+    ev.preventDefault();
+    const kwText = $("own-kw").value.trim(); if (!kwText) return;
+    const id = "C-" + Date.now().toString(36);
+    const custom = { topic: $("own-topic").value, month: NOW_MONTH, week: WOM, category: "직접 추가", keyword: kwText,
+      title: $("own-title").value.trim() || kwText, intent: $("own-intent").value, peak: NOW_MONTH, priority: "A",
+      monetize: $("own-money").value.trim() || "애드포스트", status: "todo", custom: true };
+    state.ownForm = false; state.selected = id; state.voice = voiceFor(id, custom.topic);
+    await Store.saveKw(id, { status: "todo", custom });
+  };
+}
+
+// 입력 중인 메모·주소가 지워지지 않도록, 화면에 보이는 내용이 바뀔 때만 작업대를 다시 그림
+let deskSig = "";
+function renderDesk(force) {
+  const desk = $("desk");
+  const k = keyword(state.selected);
+  const d0 = k && state.drafts[k.id];
+  const sig = JSON.stringify([state.ownForm, state.selected, k?.status, k?.postUrl, d0?.updatedAt, state.generating, state.editing, state.voice, state.tier]);
+  if (!force && sig === deskSig) return;
+  deskSig = sig;
+  if (state.ownForm) return renderOwnForm(desk);
+  if (!k) {
+    desk.innerHTML = `<div class="empty"><b>왼쪽에서 쓸 키워드를 골라 주세요</b>"이번 주까지 쓸 글"부터 시작하면 검색 시즌에 맞춰 발행할 수 있어요.</div>`;
+    return;
+  }
+  const d = state.drafts[k.id];
+  const t = TOPIC[k.topic];
+  const c = d ? countPlaceholders(d.body) : null;
+  const left = c ? c["사진"] + c["경험 추가"] + c["확인 필요"] + c["제휴"] : 0;
+  desk.innerHTML = `
+    <div class="kw-head">
+      <h3>${esc(k.keyword)}</h3>
+      <p class="idea">${esc(k.title)}</p>
+      <div class="meta"><span>${esc(t?.label || "")}</span><span>${k.custom ? "직접 추가" : `${k.month}월 ${k.week}주 발행`}</span><span>검색 성수기 ${trendOf(k.id)?.peak || k.peak}월</span><span>${esc(k.intent)}</span><span>${esc(k.monetize)}</span><span class="pill ${k.status}">${STATUS_LABEL[k.status]}</span></div>
+    </div>
+    ${trendBox(k)}
+    <div>
+      <label class="lbl" for="memo">경험 메모</label>
+      <textarea id="memo" placeholder="직접 겪은 일, 숫자, 사진 목록을 적어 주세요.${DATA.site.memoExample ? " 예) " + esc(DATA.site.memoExample) : ""}">${esc(k.memo)}</textarea>
+      <p class="hint">메모에 적은 내용만 경험으로 들어가요. 비워 두면 경험 자리는 표시만 남아요.</p>
+    </div>
+    <div class="row">
+      ${DATA.voices.length > 1 ? `<div><span class="lbl">화자</span><div class="seg" role="group" aria-label="화자">
+        ${DATA.voices.map(v => `<button type="button" data-voice="${esc(v.key)}" aria-pressed="${state.voice === v.key}">${esc(v.label)}</button>`).join("")}</div></div>` : ""}
+      <div><span class="lbl">꼼꼼함</span><div class="seg" role="group" aria-label="꼼꼼함">
+        <button type="button" data-tier="default" aria-pressed="${state.tier === "default"}">보통</button>
+        <button type="button" data-tier="complex" aria-pressed="${state.tier === "complex"}">꼼꼼하게</button></div></div>
+      <div class="row" style="margin-left:auto">
+        ${state.generating
+          ? `<button class="btn" id="stop" type="button">멈추기</button>`
+          : `<button class="btn primary" id="gen" type="button">${d ? "초안 다시 쓰기" : "초안 쓰기"}</button>`}
+      </div>
+    </div>
+    <div class="status-line" id="gen-status">${state.generating ? "Claude가 생각하는 중… (처음 글자가 나오기까지 30초~1분 걸릴 수 있어요)" : d ? "" : `버튼을 누르면 ${esc(voiceOf(state.voice).label)} 문체로 초안을 써요. 처음 한 번은 Claude 사용 허락을 물어봐요.`}</div>
+    ${d && !state.generating ? `
+      <div class="draft-bar">
+        <div class="counts">
+          ${left ? `<span class="c-photo">📷 사진 ${c["사진"]}</span><span class="c-exp">✍️ 경험 ${c["경험 추가"]}</span><span class="c-warn">⚠️ 확인 ${c["확인 필요"]}</span>${c["제휴"] ? `<span class="c-link">🔗 제휴 ${c["제휴"]}</span>` : ""}` : `<span class="c-ok">채울 자리 없음 · 발행 준비 끝</span>`}
+        </div>
+        <div class="row" style="margin-left:auto">
+          <button class="btn" id="edit" type="button">${state.editing ? "미리보기" : "직접 고치기"}</button>
+          <button class="btn naver" id="copy" type="button">본문 복사하기</button>
+        </div>
+      </div>
+      <div class="status-line" id="copy-msg"></div>
+      <div class="seo">
+        <div><b>요약</b>${esc(d.meta || "")}</div>
+        <div><b>태그</b>${(d.tags || []).map(x => "#" + esc(String(x).replace(/\s+/g, ""))).join(" ")}</div>
+        <div class="row"><button class="btn ghost" id="copy-tags" type="button">태그 복사</button><button class="btn ghost" id="copy-md" type="button">마크다운 복사</button></div>
+      </div>` : ""}
+    <div id="preview" class="phone">${state.generating ? "" : d ? (state.editing ? "" : previewHtml(d)) : `<div class="empty"><b>아직 초안이 없어요</b>메모를 적고 [초안 쓰기]를 눌러 주세요.</div>`}</div>
+    ${d && state.editing && !state.generating ? `
+      <div class="editor"><label class="lbl" for="edit-body">본문 (마크다운)</label><textarea id="edit-body">${esc(d.body)}</textarea>
+      <div class="row" style="margin-top:8px"><button class="btn primary" id="save-edit" type="button">고친 내용 저장</button><span class="hint">[사진: …] 같은 표시를 지우고 내용을 채운 뒤 저장하세요.</span></div></div>` : ""}
+    ${d && d.checklist?.length && !state.generating ? `<div><span class="lbl">발행 전 체크리스트</span><ul class="checklist">${d.checklist.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+    ${!state.generating ? `
+      <div>
+        <label class="lbl" for="post-url">발행했다면 글 주소</label>
+        <div class="publish-row">
+          <input id="post-url" type="url" placeholder="https://blog.naver.com/${esc(DATA.site.blogId || "")}/..." value="${esc(k.postUrl)}">
+          <button class="btn" id="mark-pub" type="button">발행 완료로 표시</button>
+          ${k.status !== "skip" ? `<button class="btn ghost" id="mark-skip" type="button">이번엔 건너뛰기</button>` : `<button class="btn ghost" id="mark-todo" type="button">다시 예정으로</button>`}
+        </div>
+      </div>` : ""}`;
+
+  wireTrend(k);
+  $("memo").oninput = e => Store.saveMemoSoon(k.id, e.target.value);
+  desk.querySelectorAll("[data-voice]").forEach(b => b.onclick = () => { state.voice = b.dataset.voice; renderDesk(); });
+  desk.querySelectorAll("[data-tier]").forEach(b => b.onclick = () => { state.tier = b.dataset.tier; renderDesk(); });
+  $("gen")?.addEventListener("click", generate);
+  $("stop")?.addEventListener("click", () => state.ctl?.abort());
+  $("copy")?.addEventListener("click", copyPost);
+  $("copy-tags")?.addEventListener("click", () => copyText((d.tags || []).map(x => "#" + String(x).replace(/\s+/g, "")).join(" "), "태그를 복사했어요."));
+  $("copy-md")?.addEventListener("click", () => copyText(`# ${d.title}\n\n${d.body}`, "마크다운을 복사했어요."));
+  $("edit")?.addEventListener("click", () => { state.editing = !state.editing; renderDesk(); });
+  $("save-edit")?.addEventListener("click", async () => { await Store.saveDraft(k.id, { ...d, body: $("edit-body").value }); state.editing = false; renderDesk(); });
+  $("mark-pub")?.addEventListener("click", () => Store.saveKw(k.id, { status: "published", postUrl: $("post-url").value.trim() }));
+  $("mark-skip")?.addEventListener("click", () => Store.saveKw(k.id, { status: "skip" }));
+  $("mark-todo")?.addEventListener("click", () => Store.saveKw(k.id, { status: state.drafts[k.id] ? "draft" : "todo" }));
+  if (state.generating && state.streamText) renderStream();
+}
+
+function render() {
+  renderStats(); renderFilters(); renderList();
+  if (!state.generating) renderDesk();
+  else if (!$("preview")) renderDesk();
+}
+
+$("add-own").onclick = () => { state.ownForm = true; state.selected = null; render(); if (matchMedia("(max-width: 860px)").matches) $("desk-h").scrollIntoView({ behavior: "smooth" }); };
+
+// 첫 화면: 이번 주에 쓸 첫 키워드를 골라 둠
+(() => {
+  const first = allKeywords().filter(isDue).sort((a, b) => (monthOffset(a.month, NOW_MONTH) === 11 ? -1 : 0) - (monthOffset(b.month, NOW_MONTH) === 11 ? -1 : 0) || a.week - b.week || a.priority.localeCompare(b.priority))[0];
+  state.selected = [...KW.values()].find(k => k.status === "draft")?.id || first?.id || null;
+  if (state.selected) state.voice = voiceFor(state.selected);
+})();
+Store.init();
+getSample().then(s => { if (!s) note("Claude 연결은 claude.ai에서 열었을 때만 돼요. 지금은 캘린더와 저장된 초안만 볼 수 있어요.", "info"); });
+</script>

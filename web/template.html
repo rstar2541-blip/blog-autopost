@@ -1,6 +1,6 @@
-<title>꼬몽맘 글공방</title>
+<title>__SITE_NAME__</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gaegu:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Nanum+Gothic:wght@400;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=__BRAND_FONT__&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Nanum+Gothic:wght@400;700;800&display=swap">
 <style>
 /* 레이아웃: 왼쪽 키워드 캘린더 + 오른쪽 작업대(메모 → 초안 → 네이버 미리보기). 휴대폰에서는 위아래로 쌓임 */
 :root {
@@ -19,7 +19,7 @@
   --link: #0b7a52;  --link-bg: #e3f7ee;
   --todo: #8a948d; --draft: #b7791f; --pub: #2f7a4c;
   --bar: #c9d3cb;         /* 강조하지 않는 달 */
-  --font-brand: "Gaegu", "Nanum Gothic", sans-serif;
+  --font-brand: "Gaegu", "Nanum Gothic", sans-serif;  --brand-weight: 700;  /* 설정 파일 [site] 가 덮어씀 */
   --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --font-post: "Nanum Gothic", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --radius: 10px;
@@ -52,7 +52,7 @@ button { cursor: pointer; }
 
 /* 머리 */
 .top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 18px; }
-.brand h1 { font-family: var(--font-brand); font-size: 34px; line-height: 1; margin: 0; color: var(--leaf); letter-spacing: 0.5px; }
+.brand h1 { font-family: var(--font-brand); font-weight: var(--brand-weight); font-size: 34px; line-height: 1; margin: 0; color: var(--leaf); letter-spacing: 0.5px; }
 .brand p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
 .stats { display: flex; flex-wrap: wrap; gap: 8px; }
 .stat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px; font-size: 12px; min-width: 0; }
@@ -173,13 +173,15 @@ textarea { resize: vertical; min-height: 92px; line-height: 1.5; }
 .trend-sum { margin: 0; font-size: 12.5px; color: var(--muted); }
 .trend-sum b { color: var(--ink); font-weight: 600; }
 .own-form { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; gap: 10px; background: var(--bg); }
+/* 블로그별 색·글꼴 ([site] colors) */
+/*__THEME__*/
 </style>
 
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <h1>꼬몽맘 글공방</h1>
-      <p>키워드 고르기 → 경험 메모 → Claude 초안 → 네이버에 붙여넣기</p>
+      <h1>__SITE_NAME__</h1>
+      <p>__SITE_TAGLINE__</p>
     </div>
     <div class="stats" id="stats"></div>
   </header>
@@ -212,6 +214,11 @@ const KW = new Map(DATA.keywords.map(r => {
   const [id, topic, month, week, category, keyword, title, intent, peak, priority, monetize, status] = r;
   return [id, { id, topic, month, week, category, keyword, title, intent, peak, priority, monetize, status, builtin: true }];
 }));
+// 화자(문체) 버튼: 설정 파일 [site] voices 순서대로. 첫 번째가 기본
+const VOICE = Object.fromEntries(DATA.voices.map(v => [v.key, v]));
+const voiceOf = key => VOICE[key] || DATA.voices[0];
+// 키워드를 고르면: 이미 쓴 초안의 화자 → 주제의 기본 화자 → 지금 화자 순으로 정함
+const voiceFor = (id, topic) => [state.drafts[id]?.voice, TOPIC[topic || keyword(id)?.topic]?.voice].find(v => v && VOICE[v]) || state.voice;
 const STATUS_LABEL = { todo: "예정", draft: "초안", published: "발행", skip: "건너뜀" };
 // 데이터랩 검색 추이: id -> [최근1년 지수, 최다 달, 다음 두 달 지수, 작년 대비 %, 1~12월 평균]
 const TREND = DATA.trends || {};
@@ -236,7 +243,7 @@ const state = {
   topic: "all", month: NOW_MONTH, selected: null,
   kw: {},        // id -> {status, memo, postUrl, custom}
   drafts: {},    // id -> draft
-  voice: "kkomongmom", tier: "default",
+  voice: DATA.voices[0].key, tier: "default",
   generating: false, ctl: null, streamText: "", editing: false, ownForm: false,
 };
 
@@ -390,19 +397,17 @@ function countPlaceholders(md) {
 // ------------------------------------------------------------------ 프롬프트
 function buildPrompt(k, voiceKey) {
   const t = TOPIC[k.topic];
-  const grandpa = voiceKey === "grandpa";
-  const voiceText = DATA.voices[voiceKey];
-  const greeting = grandpa ? "안녕하세요, 꼬몽할배입니다." : DATA.greeting;
+  const v = voiceOf(voiceKey);
   const memo = (k.memo || "").trim() || "(없음: 경험이 필요한 자리는 [경험 추가] 표시로 남겨 주세요)";
   return `당신은 아래 운영자를 대신해 네이버 블로그 글 초안을 쓰는 작가입니다. 운영자가 초안을 검토하고 사진과 경험을 더해 발행합니다.
 
-[운영자] ${t.persona}${grandpa ? "\n이번 글은 운영자의 아빠 꼬몽할배가 화자입니다." : ""}
+[운영자] ${t.persona}${v.note ? "\n" + v.note : ""}
 [블로그 주제] ${t.name}
 [주요 독자] ${t.audience}
 
 글쓰기 원칙
-- 화자의 1인칭 목소리로, 친근하지만 정확하게 씁니다.
-- 본문 첫 줄은 "${greeting}"로 시작합니다.
+- 문체 가이드의 화자 목소리로, 정확하게 씁니다.
+- ${v.greeting ? `본문 첫 줄은 "${v.greeting}"로 시작합니다.` : "인사말 없이, 이 글이 다루는 상황을 소개하는 문단으로 시작합니다."}
 - 첫 문단에서 검색한 사람이 가장 궁금해할 답을 먼저 줍니다.
 - 소제목(##) 3~6개, 필요하면 번호 목록과 표를 씁니다. 표는 휴대폰에서 보이도록 4칸 이하로 만듭니다.
 - 본문 분량은 공백 포함 1,500~2,500자입니다.
@@ -417,7 +422,7 @@ function buildPrompt(k, voiceKey) {
 - 본문에 광고 고지, 면책 문구는 넣지 않습니다. 필요한 문구는 프로그램이 따로 붙입니다.
 
 [문체 가이드]
-${voiceText}
+${v.text}
 
 [이번 글]
 - 핵심 키워드: ${k.keyword}
@@ -524,6 +529,10 @@ async function copyPost() {
   if (!el) return;
   const html = el.innerHTML;
   const plain = el.innerText;
+  const c = countPlaceholders(d.body);
+  const left = Object.entries(c).filter(([, n]) => n).map(([name, n]) => `[${name}] ${n}곳`).join(", ");
+  const warn = left ? ` 단, 아직 채우지 않은 표시(${left})도 같이 복사됐어요. 발행 전에 꼭 고치거나 지워 주세요.` : "";
+  $("copy-msg").dataset.tone = warn ? "warn" : "";
   try {
     if (window.ClipboardItem && navigator.clipboard?.write) {
       await navigator.clipboard.write([new ClipboardItem({
@@ -531,12 +540,12 @@ async function copyPost() {
         "text/plain": new Blob([plain], { type: "text/plain" }),
       })]);
     } else { await navigator.clipboard.writeText(plain); }
-    $("copy-msg").textContent = "복사했어요. 네이버 블로그 글쓰기 화면에 붙여넣으세요.";
+    $("copy-msg").textContent = "복사했어요. 네이버 블로그 글쓰기 화면에 붙여넣으세요." + warn;
   } catch {
     const range = document.createRange(); range.selectNodeContents(el);
     const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
     let ok = false; try { ok = document.execCommand("copy"); } catch {}
-    $("copy-msg").textContent = ok ? "복사했어요. 네이버 블로그 글쓰기 화면에 붙여넣으세요." : "본문을 선택해 두었어요. Ctrl+C(⌘+C)로 복사하세요.";
+    $("copy-msg").textContent = (ok ? "복사했어요. 네이버 블로그 글쓰기 화면에 붙여넣으세요." : "본문을 선택해 두었어요. Ctrl+C(⌘+C)로 복사하세요.") + warn;
   }
 }
 async function copyText(text, msg) {
@@ -589,7 +598,7 @@ function kwButton(k) {
         : `<span class="vol">검색 지수 ${fmtVol(tr.volume)} · 최다 ${tr.peak}월</span>`;
     })()}`;
   b.onclick = () => {
-    state.selected = k.id; state.editing = false; state.ownForm = false; note("");
+    state.selected = k.id; state.voice = voiceFor(k.id); state.editing = false; state.ownForm = false; note("");
     render();
     if (matchMedia("(max-width: 860px)").matches) $("desk-h").scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -678,7 +687,7 @@ function wireTrend(k) {
 }
 
 function previewHtml(draft) {
-  const center = (draft.voice || "kkomongmom") !== "grandpa";
+  const center = voiceOf(draft.voice).center;
   return `<div class="post${center ? " center" : ""}"><h1>${esc(draft.title)}</h1>${mdToHtml(draft.body)}</div>`;
 }
 
@@ -688,7 +697,7 @@ function renderStream() {
   const k = keyword(state.selected);
   const title = p.title || k?.title || "";
   const body = p.hasBody ? p.body : "";
-  box.innerHTML = `<div class="post${state.voice !== "grandpa" ? " center" : ""}"><h1>${esc(title)}</h1>${body ? mdToHtml(body) : "<p>제목과 요약을 쓰는 중…</p>"}<span class="stream-cursor" aria-hidden="true"></span></div>`;
+  box.innerHTML = `<div class="post${voiceOf(state.voice).center ? " center" : ""}"><h1>${esc(title)}</h1>${body ? mdToHtml(body) : "<p>제목과 요약을 쓰는 중…</p>"}<span class="stream-cursor" aria-hidden="true"></span></div>`;
   $("gen-status").textContent = `쓰는 중… ${body.length.toLocaleString()}자`;
 }
 
@@ -697,8 +706,8 @@ function renderOwnForm(desk) {
     <div class="kw-head"><h3>캘린더에 없는 글 쓰기</h3><p class="idea">주제와 키워드를 적으면 캘린더 글처럼 초안을 만들어요.</p></div>
     <form class="own-form" id="own-form">
       <div><label class="lbl" for="own-topic">주제</label><select id="own-topic">${DATA.topics.map(t => `<option value="${t.key}">${esc(t.name)}</option>`).join("")}</select></div>
-      <div><label class="lbl" for="own-kw">핵심 키워드</label><input id="own-kw" type="text" required placeholder="예: 조경 내역서 작성"></div>
-      <div><label class="lbl" for="own-title">제목 아이디어</label><input id="own-title" type="text" placeholder="예: 조경 내역서 작성 방법, 순서대로 알려드려요"></div>
+      <div><label class="lbl" for="own-kw">핵심 키워드</label><input id="own-kw" type="text" required placeholder="${DATA.site.ownExample ? "예: " + esc(DATA.site.ownExample) : ""}"></div>
+      <div><label class="lbl" for="own-title">제목 아이디어</label><input id="own-title" type="text" placeholder="${DATA.site.ownTitleExample ? "예: " + esc(DATA.site.ownTitleExample) : ""}"></div>
       <div class="row">
         <div style="flex:1 1 140px"><label class="lbl" for="own-intent">검색 의도</label><select id="own-intent">${Object.keys(INTENT_GUIDE).map(x => `<option>${x}</option>`).join("")}</select></div>
         <div style="flex:1 1 140px"><label class="lbl" for="own-money">수익 연결</label><input id="own-money" type="text" value="애드포스트"></div>
@@ -713,7 +722,7 @@ function renderOwnForm(desk) {
     const custom = { topic: $("own-topic").value, month: NOW_MONTH, week: WOM, category: "직접 추가", keyword: kwText,
       title: $("own-title").value.trim() || kwText, intent: $("own-intent").value, peak: NOW_MONTH, priority: "A",
       monetize: $("own-money").value.trim() || "애드포스트", status: "todo", custom: true };
-    state.ownForm = false; state.selected = id;
+    state.ownForm = false; state.selected = id; state.voice = voiceFor(id, custom.topic);
     await Store.saveKw(id, { status: "todo", custom });
   };
 }
@@ -745,13 +754,12 @@ function renderDesk(force) {
     ${trendBox(k)}
     <div>
       <label class="lbl" for="memo">경험 메모</label>
-      <textarea id="memo" placeholder="직접 겪은 일, 숫자, 사진 목록을 적어 주세요. 예) 작년 4월 25일 고추 심었다가 냉해, 사진 3장 있음 / 아빠 말: 지온 15도 넘을 때 심어야 함">${esc(k.memo)}</textarea>
+      <textarea id="memo" placeholder="직접 겪은 일, 숫자, 사진 목록을 적어 주세요.${DATA.site.memoExample ? " 예) " + esc(DATA.site.memoExample) : ""}">${esc(k.memo)}</textarea>
       <p class="hint">메모에 적은 내용만 경험으로 들어가요. 비워 두면 경험 자리는 표시만 남아요.</p>
     </div>
     <div class="row">
-      <div><span class="lbl">화자</span><div class="seg" role="group" aria-label="화자">
-        <button type="button" data-voice="kkomongmom" aria-pressed="${state.voice === "kkomongmom"}">꼬몽맘</button>
-        <button type="button" data-voice="grandpa" aria-pressed="${state.voice === "grandpa"}">꼬몽할배</button></div></div>
+      ${DATA.voices.length > 1 ? `<div><span class="lbl">화자</span><div class="seg" role="group" aria-label="화자">
+        ${DATA.voices.map(v => `<button type="button" data-voice="${esc(v.key)}" aria-pressed="${state.voice === v.key}">${esc(v.label)}</button>`).join("")}</div></div>` : ""}
       <div><span class="lbl">꼼꼼함</span><div class="seg" role="group" aria-label="꼼꼼함">
         <button type="button" data-tier="default" aria-pressed="${state.tier === "default"}">보통</button>
         <button type="button" data-tier="complex" aria-pressed="${state.tier === "complex"}">꼼꼼하게</button></div></div>
@@ -761,7 +769,7 @@ function renderDesk(force) {
           : `<button class="btn primary" id="gen" type="button">${d ? "초안 다시 쓰기" : "초안 쓰기"}</button>`}
       </div>
     </div>
-    <div class="status-line" id="gen-status">${state.generating ? "Claude가 생각하는 중… (처음 글자가 나오기까지 30초~1분 걸릴 수 있어요)" : d ? "" : "버튼을 누르면 꼬몽맘 문체로 초안을 써요. 처음 한 번은 Claude 사용 허락을 물어봐요."}</div>
+    <div class="status-line" id="gen-status">${state.generating ? "Claude가 생각하는 중… (처음 글자가 나오기까지 30초~1분 걸릴 수 있어요)" : d ? "" : `버튼을 누르면 ${esc(voiceOf(state.voice).label)} 문체로 초안을 써요. 처음 한 번은 Claude 사용 허락을 물어봐요.`}</div>
     ${d && !state.generating ? `
       <div class="draft-bar">
         <div class="counts">
@@ -787,7 +795,7 @@ function renderDesk(force) {
       <div>
         <label class="lbl" for="post-url">발행했다면 글 주소</label>
         <div class="publish-row">
-          <input id="post-url" type="url" placeholder="https://blog.naver.com/samil5240/..." value="${esc(k.postUrl)}">
+          <input id="post-url" type="url" placeholder="https://blog.naver.com/${esc(DATA.site.blogId || "")}/..." value="${esc(k.postUrl)}">
           <button class="btn" id="mark-pub" type="button">발행 완료로 표시</button>
           ${k.status !== "skip" ? `<button class="btn ghost" id="mark-skip" type="button">이번엔 건너뛰기</button>` : `<button class="btn ghost" id="mark-todo" type="button">다시 예정으로</button>`}
         </div>
@@ -822,6 +830,7 @@ $("add-own").onclick = () => { state.ownForm = true; state.selected = null; rend
 (() => {
   const first = allKeywords().filter(isDue).sort((a, b) => (monthOffset(a.month, NOW_MONTH) === 11 ? -1 : 0) - (monthOffset(b.month, NOW_MONTH) === 11 ? -1 : 0) || a.week - b.week || a.priority.localeCompare(b.priority))[0];
   state.selected = [...KW.values()].find(k => k.status === "draft")?.id || first?.id || null;
+  if (state.selected) state.voice = voiceFor(state.selected);
 })();
 Store.init();
 getSample().then(s => { if (!s) note("Claude 연결은 claude.ai에서 열었을 때만 돼요. 지금은 캘린더와 저장된 초안만 볼 수 있어요.", "info"); });
