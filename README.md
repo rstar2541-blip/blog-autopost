@@ -50,6 +50,31 @@ CSV 파일은 엑셀이나 구글 시트에서 바로 열립니다. GitHub에서
   python -m blog_autopost build-web
   ```
 
+## 네이버 데이터랩으로 글감 고르기
+
+[네이버 데이터랩 검색어 트렌드 API](https://developers.naver.com/docs/serviceapi/datalab/search/search.md)로 캘린더 키워드의 실제 검색 추이를 받아 옵니다. `.env`에 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`을 적어 두세요.
+
+```bash
+python -m blog_autopost trends update
+```
+
+- 키워드 401개의 최근 3년 월별 추이를 받아 `keywords/trends.csv`에 저장합니다. 4개씩 묶어 약 100번 호출하며, 하루 한도는 1,000번입니다.
+- 화면에 세 가지를 보여 줍니다.
+  - **지금 쓰면 좋은 글감**: 다음 두 달 동안 검색이 많을 키워드
+  - **검색이 거의 없는 키워드**: 다른 표현으로 바꿀 후보
+  - **성수기 예상이 실제와 다른 키워드**
+- `--apply-peaks`를 붙이면, 계절성이 뚜렷한 키워드에 한해 캘린더의 "검색 성수기" 칸을 실제 데이터로 바꿉니다.
+
+데이터랩은 검색 횟수가 아니라 상대 비율만 줍니다. 그래서 모든 요청에 기준 검색어(기본 "텃밭")를 함께 넣고, **기준 검색어의 1년 평균 = 100**으로 환산합니다. "검색 지수 50"은 "텃밭"의 절반쯤 검색된다는 뜻입니다. 기준 검색어는 `config.toml`의 `[datalab] anchor`에서 바꿀 수 있습니다.
+
+후보 검색어끼리 바로 비교할 때는 아래처럼 실행합니다. 쉼표로 묶은 검색어는 한 그룹으로 합산합니다.
+
+```bash
+python -m blog_autopost trends compare "고추모종" "고추 모종 심는 시기" "고추모종 가격,고추모종 파는곳"
+```
+
+`trends update` 뒤에 `build-web`을 실행하면 글공방 페이지에 "지금 쓰면 좋은 글감" 목록과 키워드별 월별 검색 막대가 나타납니다. GitHub에서 매달 자동으로 갱신하려면 `.github/workflows/trends.yml`을 쓰세요.
+
 ## 내 문체 (꼬몽맘 스타일)
 
 `style/` 폴더에 네이버 블로그 [samil5240](https://blog.naver.com/samil5240)의 글 118편을 전부 읽고 정리한 문체 분석이 있습니다.

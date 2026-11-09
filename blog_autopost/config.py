@@ -45,6 +45,7 @@ class Config:
     generator: GeneratorConfig
     topics: dict[str, TopicConfig] = field(default_factory=dict)
     align: str = "left"   # 붙여넣기용 HTML 정렬 (left | center)
+    datalab: dict = field(default_factory=dict)   # [datalab] anchor, years
 
     def topic(self, key: str) -> TopicConfig:
         if key not in self.topics:
@@ -109,4 +110,5 @@ def load_config(path: str | Path = "config.toml") -> Config:
         generator=gen,
         topics=topics,
         align=align,
+        datalab=data.get("datalab", {}),
     )

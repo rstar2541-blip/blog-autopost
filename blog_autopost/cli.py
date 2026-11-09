@@ -12,6 +12,7 @@ from .config import Config, TopicConfig, load_config
 from .generator import GenerationError, generate
 from .keywords import Keyword
 from .render import body_html, count_placeholders, load_draft, save_draft
+from .datalab import DataLabError
 from .wordpress import PublishError, WordPressClient
 
 
@@ -183,6 +184,109 @@ def cmd_analyze_blog(cfg: Config, args) -> int:
     return 0
 
 
+MONTHS_KO = "1월 2월 3월 4월 5월 6월 7월 8월 9월 10월 11월 12월".split()
+
+
+def _trend_line(name: str, st_, width: int = 22) -> str:
+    from .datalab import sparkline
+
+    yoy = "" if st_.yoy is None else f"  작년 대비 {st_.yoy:+.0f}%"
+    if not st_.has_data:
+        return f"  {name[:width]:<{width}}  검색 데이터 없음"
+    return (f"  {name[:width]:<{width}}  지수 {st_.volume:>6.1f}  {sparkline(st_.by_month)}  "
+            f"최다 {st_.peak_month:>2}월{yoy}")
+
+
+def cmd_trends_update(cfg: Config, args) -> int:
+    from .datalab import DataLabClient, analyze, fetch_relative, month_range, read_trends, write_trends
+
+    today = _today(args)
+    anchor = args.anchor or cfg.datalab.get("anchor", "텃밭")
+    years = args.years or int(cfg.datalab.get("years", 3))
+    start, end, periods = month_range(today, years * 12)
+    client = DataLabClient.from_env()
+
+    topics = _topics(cfg, args.topic)
+    rows_by_topic = {t.key: kwmod.load(t.csv) for t in topics}
+    terms = [r.resolved(cfg.region).keyword for rows in rows_by_topic.values() for r in rows]
+    print(f"데이터랩에서 {len(set(terms))}개 검색어의 {start} ~ {end} 월별 추이를 받는 중 (기준: '{anchor}')…")
+    series = fetch_relative(client, terms, start, end, periods, anchor,
+                            progress=lambda d, n: print(f"\r  {d}/{n}", end="", flush=True))
+    print(f"\n  API 호출 {client.calls}회 (하루 한도 1,000회)")
+
+    out_path = cfg.root / "keywords" / "trends.csv"
+    existing = read_trends(out_path)
+    rows_out, stats = [], {}
+    keep_ids = {r.id for rows in rows_by_topic.values() for r in rows}
+    for topic_key, rows in rows_by_topic.items():
+        for r in rows:
+            kw = r.resolved(cfg.region)
+            st_ = analyze(kw.keyword, series.get(kw.keyword, [0.0] * len(periods)), periods, today)
+            stats[r.id] = (topic_key, r, kw, st_)
+            rows_out.append({"id": r.id, "topic": topic_key, "keyword": kw.keyword, "volume": st_.volume,
+                             "peak_month": st_.peak_month, "planned_peak": r.peak_month,
+                             "seasonality": st_.seasonality, "yoy": st_.yoy, "next2": st_.next2,
+                             "by_month": st_.by_month, "anchor": anchor, "fetched": today.isoformat()})
+    # 다른 주제의 기존 결과는 유지
+    for kid, old in existing.items():
+        if kid not in keep_ids:
+            rows_out.append({"id": kid, **old})
+    write_trends(out_path, rows_out)
+
+    todo = [v for v in stats.values() if v[1].status == "todo" and v[3].has_data]
+    print("\n[지금 쓰면 좋은 글감] 다음 두 달 예상 검색 지수 순")
+    for _, r, kw, st_ in sorted(todo, key=lambda v: -v[3].next2)[:args.top]:
+        print(_trend_line(f"{r.id} {kw.keyword}", st_, 26) + f"  → 다음 두 달 {st_.next2:.1f}")
+
+    empty = [v for v in stats.values() if not v[3].has_data or v[3].volume < args.min_volume]
+    print(f"\n[검색이 거의 없는 키워드] {len(empty)}개 — 다른 검색어로 바꾸는 걸 고려하세요")
+    for _, r, kw, st_ in sorted(empty, key=lambda v: v[3].volume)[:10]:
+        print(f"  {r.id} {kw.keyword}  (지수 {st_.volume:.2f})")
+
+    off = [v for v in stats.values() if v[3].has_data and v[3].seasonality >= 1.3
+           and min((v[3].peak_month - v[1].peak_month) % 12, (v[1].peak_month - v[3].peak_month) % 12) >= 2]
+    print(f"\n[성수기 예상이 실제와 2달 이상 다른 키워드] {len(off)}개")
+    for _, r, kw, st_ in off[:10]:
+        print(f"  {r.id} {kw.keyword}  예상 {r.peak_month}월 → 실제 {st_.peak_month}월")
+
+    if args.apply_peaks:
+        changed = 0
+        for t in topics:
+            rows = rows_by_topic[t.key]
+            for r in rows:
+                st_ = stats[r.id][3]
+                if st_.has_data and st_.seasonality >= 1.3 and r.peak_month != st_.peak_month:
+                    r.peak_month = st_.peak_month
+                    changed += 1
+            kwmod.save(t.csv, rows)
+        print(f"\n캘린더의 '검색 성수기' 칸 {changed}개를 실제 데이터로 바꿨습니다 (계절성이 뚜렷한 키워드만).")
+    print(f"\n결과: {out_path.relative_to(cfg.root)} (엑셀로 열 수 있어요)")
+    return 0
+
+
+def cmd_trends_compare(cfg: Config, args) -> int:
+    from .datalab import DataLabClient, analyze, month_range, series_from, sparkline
+
+    if not 1 <= len(args.terms) <= 5:
+        print("비교할 검색어는 1~5개입니다.")
+        return 1
+    today = _today(args)
+    years = args.years or int(cfg.datalab.get("years", 3))
+    start, end, periods = month_range(today, years * 12)
+    client = DataLabClient.from_env()
+    data = client.search([(t, [x.strip() for x in t.split(",") if x.strip()]) for t in args.terms], start, end)
+    results = {r["title"]: r for r in data.get("results", [])}
+    print(f"{start} ~ {end} · 숫자는 이 비교 안에서 가장 많이 검색된 달 = 100\n")
+    print(f"  {'검색어':<20}  최근12달  {'최근 12개월 흐름':<12}  1~12월 평균")
+    for t in args.terms:
+        values = series_from(results.get(t, {}), periods)
+        st_ = analyze(t, values, periods, today)
+        yoy = "" if st_.yoy is None else f"  작년 대비 {st_.yoy:+.0f}%"
+        print(f"  {t[:20]:<20}  {st_.volume:>7.1f}  {sparkline(values[-12:])}  {sparkline(st_.by_month)}"
+              f"  최다 {st_.peak_month}월{yoy}" if st_.has_data else f"  {t[:20]:<20}  검색 데이터 없음")
+    return 0
+
+
 def cmd_build_web(cfg: Config, args) -> int:
     from .webapp import build_web
 
@@ -246,6 +350,19 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("calendar", help="전체 캘린더를 HTML로 만들기")
     s.add_argument("--out", default="calendar.html")
 
+    s = sub.add_parser("trends", help="네이버 데이터랩 검색어 트렌드")
+    tsub = s.add_subparsers(dest="trends_command", required=True)
+    t = tsub.add_parser("update", help="캘린더 키워드 전체의 검색 추이 받기 → keywords/trends.csv")
+    t.add_argument("--topic")
+    t.add_argument("--anchor", help="기준 검색어 (기본: config.toml [datalab] anchor)")
+    t.add_argument("--years", type=int, help="몇 년치 (기본 3)")
+    t.add_argument("--top", type=int, default=10, help="추천 글감 몇 개 보여줄지")
+    t.add_argument("--min-volume", type=float, default=1.0, help="이보다 작으면 '검색 거의 없음'")
+    t.add_argument("--apply-peaks", action="store_true", help="캘린더의 검색 성수기 칸을 실제 데이터로 바꾸기")
+    t = tsub.add_parser("compare", help="검색어 1~5개 추이 비교 (쉼표로 묶으면 한 그룹)")
+    t.add_argument("terms", nargs="+")
+    t.add_argument("--years", type=int)
+
     sub.add_parser("build-web", help="글공방 웹페이지(web/blog-writer.html) 다시 만들기")
 
     s = sub.add_parser("analyze-blog", help="내 네이버 블로그 글을 읽어 문체 다시 분석")
@@ -279,11 +396,13 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_mark(cfg, args, "skip")
         if args.command == "calendar":
             return cmd_calendar(cfg, args)
+        if args.command == "trends":
+            return cmd_trends_update(cfg, args) if args.trends_command == "update" else cmd_trends_compare(cfg, args)
         if args.command == "build-web":
             return cmd_build_web(cfg, args)
         if args.command == "analyze-blog":
             return cmd_analyze_blog(cfg, args)
-    except (KeyError, PublishError) as e:
+    except (KeyError, PublishError, DataLabError) as e:
         print(e.args[0] if e.args else e)
         return 1
     return 1

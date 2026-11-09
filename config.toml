@@ -8,6 +8,12 @@ region = "울산"
 nickname = "꼬몽맘"
 greeting = "안녕하세요! 꼬몽맘입니다."   # 초안 첫 줄. 주제별로 greeting을 따로 줄 수도 있음
 
+[datalab]
+# 네이버 데이터랩 검색어 트렌드 (python -m blog_autopost trends update)
+# .env 에 NAVER_CLIENT_ID, NAVER_CLIENT_SECRET 필요
+anchor = "텃밭"   # 모든 키워드를 이 검색어의 평균 = 100 으로 환산해 비교
+years = 3         # 몇 년치 월별 추이를 볼지
+
 [render]
 # center: 붙여넣기용 HTML을 가운데 정렬 (블로그 글 86~100%가 가운데 정렬 — style/README.md 참고)
 align = "center"

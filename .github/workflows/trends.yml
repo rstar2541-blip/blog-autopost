@@ -1,0 +1,39 @@
+# 매달 네이버 데이터랩에서 키워드 캘린더의 검색 추이를 새로 받아 keywords/trends.csv 와 글공방 페이지를 갱신합니다.
+# 저장소 Settings > Secrets and variables > Actions 에 NAVER_CLIENT_ID, NAVER_CLIENT_SECRET 을 등록하세요.
+# 처음에는 수동 실행만 켜져 있습니다. 매달 자동으로 돌리려면 schedule 두 줄의 주석(#)을 지우세요.
+name: trends
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: "23 22 2 * *"   # 매달 3일 오전 7시 23분(한국 시간)
+
+permissions:
+  contents: write
+
+jobs:
+  trends:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: 검색 추이 받기
+        env:
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+        run: |
+          if [ -z "$NAVER_CLIENT_ID" ] || [ -z "$NAVER_CLIENT_SECRET" ]; then
+            echo "NAVER_CLIENT_ID / NAVER_CLIENT_SECRET 시크릿이 없어 건너뜁니다."; exit 0
+          fi
+          python -m blog_autopost trends update
+          python -m blog_autopost build-web
+      - name: 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add keywords web
+          if git diff --cached --quiet; then echo "변경 없음"; else
+            git commit -m "Monthly search trends $(TZ=Asia/Seoul date +%F)"; git push; fi

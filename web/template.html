@@ -18,6 +18,7 @@
   --photo: #1f4fb8; --photo-bg: #e7efff;
   --link: #0b7a52;  --link-bg: #e3f7ee;
   --todo: #8a948d; --draft: #b7791f; --pub: #2f7a4c;
+  --bar: #c9d3cb;         /* 강조하지 않는 달 */
   --font-brand: "Gaegu", "Nanum Gothic", sans-serif;
   --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --font-post: "Nanum Gothic", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
@@ -29,7 +30,7 @@
     --leaf: #6cc28f; --leaf-soft: #1f3327; --soil: #c9a27c; --naver: #2fd47a;
     --warn: #ff9b8f; --warn-bg: #3a1f1c; --exp: #f5b46a; --exp-bg: #3a2a16;
     --photo: #9dbcff; --photo-bg: #1c2840; --link: #6fe0b0; --link-bg: #173328;
-    --todo: #7d8a81; --draft: #e0a84a; --pub: #6cc28f;
+    --todo: #7d8a81; --draft: #e0a84a; --pub: #6cc28f; --bar: #3d4d43;
     color-scheme: dark;
   }
 }
@@ -38,7 +39,7 @@
   --leaf: #6cc28f; --leaf-soft: #1f3327; --soil: #c9a27c; --naver: #2fd47a;
   --warn: #ff9b8f; --warn-bg: #3a1f1c; --exp: #f5b46a; --exp-bg: #3a2a16;
   --photo: #9dbcff; --photo-bg: #1c2840; --link: #6fe0b0; --link-bg: #173328;
-  --todo: #7d8a81; --draft: #e0a84a; --pub: #6cc28f;
+  --todo: #7d8a81; --draft: #e0a84a; --pub: #6cc28f; --bar: #3d4d43;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -159,6 +160,18 @@ textarea { resize: vertical; min-height: 92px; line-height: 1.5; }
 .editor textarea { min-height: 360px; font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 13px; }
 .publish-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .publish-row input { flex: 1 1 220px; }
+/* 검색 추이 */
+.kw .vol { grid-column: 2; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.kw .vol.low { color: var(--warn); }
+.trend { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px 8px; position: relative; }
+.trend-h { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; font-size: 13px; }
+.trend-h span { color: var(--muted); font-size: 12px; }
+.trend svg { display: block; width: 100%; max-width: 520px; height: auto; margin: 6px 0 2px; overflow: visible; }
+.trend svg text { fill: var(--muted); font-size: 10px; font-family: var(--font-ui); font-variant-numeric: tabular-nums; }
+.trend svg text.on { fill: var(--ink); font-weight: 700; }
+.trend .tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--panel); font-size: 12px; padding: 3px 8px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -100%); }
+.trend-sum { margin: 0; font-size: 12.5px; color: var(--muted); }
+.trend-sum b { color: var(--ink); font-weight: 600; }
 .own-form { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; display: grid; gap: 10px; background: var(--bg); }
 </style>
 
@@ -200,6 +213,11 @@ const KW = new Map(DATA.keywords.map(r => {
   return [id, { id, topic, month, week, category, keyword, title, intent, peak, priority, monetize, status, builtin: true }];
 }));
 const STATUS_LABEL = { todo: "예정", draft: "초안", published: "발행", skip: "건너뜀" };
+// 데이터랩 검색 추이: id -> [최근1년 지수, 최다 달, 다음 두 달 지수, 작년 대비 %, 1~12월 평균]
+const TREND = DATA.trends || {};
+const HAS_TRENDS = Object.keys(TREND).length > 0;
+const trendOf = id => { const t = TREND[id]; return t ? { volume: t[0], peak: t[1], next2: t[2], yoy: t[3], byMonth: t[4] } : null; };
+const fmtVol = v => v >= 10 ? Math.round(v).toString() : v >= 1 ? v.toFixed(1) : v > 0 ? "1 미만" : "0";
 const INTENT_GUIDE = {
   "정보": "검색한 사람이 바로 따라 할 수 있게 시기·방법·순서를 구체적으로 정리한다.",
   "문제해결": "증상 → 원인 → 지금 할 수 있는 대처 → 예방 순서로 쓴다.",
@@ -405,7 +423,7 @@ ${voiceText}
 - 제목 아이디어: ${k.title}
 - 분류: ${k.category}
 - 검색 의도: ${k.intent} → ${INTENT_GUIDE[k.intent] || INTENT_GUIDE["정보"]}
-- 발행 예정: ${k.month}월 ${k.week}주차 (검색이 가장 많은 달: ${k.peak}월)
+- 발행 예정: ${k.month}월 ${k.week}주차 (검색이 가장 많은 달: ${trendOf(k.id)?.peak || k.peak}월${trendOf(k.id)?.peak ? ", 네이버 데이터랩 최근 3년 기준" : ""})
 - 수익 연결: ${k.monetize}
 - 운영자 경험 메모: ${memo}
 
@@ -563,7 +581,11 @@ function kwButton(k) {
   b.setAttribute("aria-current", state.selected === k.id);
   b.innerHTML = `<span class="wk">${k.custom ? "직접" : k.week + "주"} <span class="prio-${k.priority}">${esc(k.priority)}</span></span>
     <span class="t"><b>${esc(k.keyword)}</b><small>${esc(TOPIC[k.topic]?.label || "")} · ${esc(k.title)}</small></span>
-    <span class="pill ${k.status}">${STATUS_LABEL[k.status] || k.status}</span>`;
+    <span class="pill ${k.status}">${STATUS_LABEL[k.status] || k.status}</span>${(() => {
+      const tr = trendOf(k.id); if (!tr) return "";
+      return tr.volume < 1 ? `<span class="vol low">검색 거의 없음</span>`
+        : `<span class="vol">검색 지수 ${fmtVol(tr.volume)} · 최다 ${tr.peak}월</span>`;
+    })()}`;
   b.onclick = () => {
     state.selected = k.id; state.editing = false; state.ownForm = false; note("");
     render();
@@ -581,6 +603,11 @@ function renderList() {
   const order = (a, b) => rank(a) - rank(b) || a.week - b.week || a.priority.localeCompare(b.priority) || topicIdx(a) - topicIdx(b) || a.id.localeCompare(b.id);
   const due = ks.filter(isDue).sort(order);
   const groups = [];
+  if (HAS_TRENDS) {
+    const hot = ks.filter(k => k.status === "todo" && trendOf(k.id)?.volume >= 1)
+      .sort((a, b) => trendOf(b.id).next2 - trendOf(a.id).next2).slice(0, 6);
+    if (hot.length) groups.push(["지금 쓰면 좋은 글감 · 다음 두 달 검색이 많을 글", hot]);
+  }
   if (state.month === NOW_MONTH && due.length) groups.push(["이번 주까지 쓸 글", due.slice(0, 6)]);
   const custom = ks.filter(k => k.custom).sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
   if (custom.length) groups.push(["직접 추가한 글", custom]);
@@ -592,6 +619,59 @@ function renderList() {
     items.forEach(k => list.append(kwButton(k))); total += items.length;
   }
   $("cal-count").textContent = `${state.month}월 ${ks.filter(k => !k.custom && k.month === state.month).length}개`;
+}
+
+// 1~12월 검색 추이 막대 (최다 달만 강조, 발행 달은 글자로 표시)
+function trendBox(k) {
+  if (!HAS_TRENDS) return "";
+  const tr = trendOf(k.id);
+  const meta = DATA.trendMeta || {};
+  if (!tr) return `<div class="trend"><p class="trend-sum">캘린더에 없는 키워드라 검색 추이가 없어요. 터미널에서 <b>python -m blog_autopost trends compare "${esc(k.keyword)}"</b>로 확인할 수 있어요.</p></div>`;
+  if (tr.volume < 1) return `<div class="trend"><p class="trend-sum">네이버에서 이 검색어로는 <b>검색이 거의 없어요</b>. 사람들이 실제로 쓰는 다른 표현으로 바꾸는 걸 고려해 보세요.</p></div>`;
+  const W = 360, H = 120, top = 16, base = 86, slot = W / 12, bw = Math.min(22, slot - 6);
+  const max = Math.max(...tr.byMonth, 0.0001);
+  const bars = tr.byMonth.map((v, i) => {
+    const h = Math.max(1.5, (v / max) * (base - top)), x = i * slot + (slot - bw) / 2, y = base - h, r = Math.min(4, h);
+    const fill = i + 1 === tr.peak ? "var(--leaf)" : "var(--bar)";
+    const d = `M${x},${base} V${y + r} Q${x},${y} ${x + r},${y} H${x + bw - r} Q${x + bw},${y} ${x + bw},${y + r} V${base} Z`;
+    return `<path d="${d}" fill="${fill}"></path>`;
+  }).join("");
+  const peakX = (tr.peak - 0.5) * slot, peakY = base - (tr.byMonth[tr.peak - 1] / max) * (base - top) - 5;
+  const labels = tr.byMonth.map((_, i) => {
+    const m = i + 1, on = m === tr.peak || m === k.month;
+    return `<text x="${(i + 0.5) * slot}" y="${base + 14}" text-anchor="middle" class="${on ? "on" : ""}">${m}</text>`;
+  }).join("");
+  const pub = k.custom ? "" : `<text x="${(k.month - 0.5) * slot}" y="${base + 28}" text-anchor="middle" class="on">발행</text>`;
+  const peakTag = `<text x="${(tr.peak - 0.5) * slot}" y="${base + 28 + (k.month === tr.peak && !k.custom ? 12 : 0)}" text-anchor="middle" class="on">최다</text>`;
+  const yoy = tr.yoy == null ? "" : ` · 작년 같은 때보다 <b>${tr.yoy > 0 ? "+" : ""}${Math.round(tr.yoy)}%</b>`;
+  return `<div class="trend" id="trend">
+    <div class="trend-h"><b>월별 검색 추이 (네이버 데이터랩)</b><span>최근 3년 평균 · 기준 '${esc(meta.anchor || "")}' 1년 평균 = 100</span></div>
+    <svg viewBox="0 -4 ${W} ${H + 12}" role="img" aria-label="1월부터 12월까지 검색 지수. 가장 많은 달 ${tr.peak}월">
+      ${bars}
+      <text x="${peakX}" y="${peakY}" text-anchor="middle" class="on">${fmtVol(tr.byMonth[tr.peak - 1])}</text>
+      <line x1="0" x2="${W}" y1="${base}" y2="${base}" stroke="var(--line)" stroke-width="1"></line>
+      ${labels}${pub}${peakTag}
+      <rect id="trend-hit" x="0" y="0" width="${W}" height="${base}" fill="transparent"></rect>
+    </svg>
+    <div class="tip" id="trend-tip" hidden></div>
+    <p class="trend-sum">최근 1년 검색 지수 <b>${fmtVol(tr.volume)}</b> · 가장 많이 찾는 달 <b>${tr.peak}월</b>${yoy}${k.custom ? "" : ` · 발행 예정 <b>${k.month}월</b>`}</p>
+  </div>`;
+}
+function wireTrend(k) {
+  const tr = trendOf(k?.id), hit = $("trend-hit"), tip = $("trend-tip");
+  if (!tr || !hit || !tip) return;
+  const svg = hit.ownerSVGElement, box = $("trend");
+  const show = ev => {
+    const r = svg.getBoundingClientRect(), i = Math.max(0, Math.min(11, Math.floor((ev.clientX - r.left) / r.width * 12)));
+    const b = box.getBoundingClientRect();
+    tip.hidden = false; tip.textContent = `${i + 1}월 · 검색 지수 ${fmtVol(tr.byMonth[i])}`;
+    // 말풍선은 막대 바로 위에 (viewBox: y -4 ~ 128, 바닥 86, 위 16)
+    const max = Math.max(...tr.byMonth, 0.0001), barTop = 86 - (tr.byMonth[i] / max) * 70;
+    tip.style.left = (r.left - b.left + (i + 0.5) * r.width / 12) + "px";
+    tip.style.top = (r.top - b.top + ((barTop + 4) / 132) * r.height - 6) + "px";
+  };
+  hit.addEventListener("pointermove", show); hit.addEventListener("pointerdown", show);
+  hit.addEventListener("pointerleave", () => { tip.hidden = true; });
 }
 
 function previewHtml(draft) {
@@ -657,8 +737,9 @@ function renderDesk(force) {
     <div class="kw-head">
       <h3>${esc(k.keyword)}</h3>
       <p class="idea">${esc(k.title)}</p>
-      <div class="meta"><span>${esc(t?.label || "")}</span><span>${k.custom ? "직접 추가" : `${k.month}월 ${k.week}주 발행`}</span><span>검색 성수기 ${k.peak}월</span><span>${esc(k.intent)}</span><span>${esc(k.monetize)}</span><span class="pill ${k.status}">${STATUS_LABEL[k.status]}</span></div>
+      <div class="meta"><span>${esc(t?.label || "")}</span><span>${k.custom ? "직접 추가" : `${k.month}월 ${k.week}주 발행`}</span><span>검색 성수기 ${trendOf(k.id)?.peak || k.peak}월</span><span>${esc(k.intent)}</span><span>${esc(k.monetize)}</span><span class="pill ${k.status}">${STATUS_LABEL[k.status]}</span></div>
     </div>
+    ${trendBox(k)}
     <div>
       <label class="lbl" for="memo">경험 메모</label>
       <textarea id="memo" placeholder="직접 겪은 일, 숫자, 사진 목록을 적어 주세요. 예) 작년 4월 25일 고추 심었다가 냉해, 사진 3장 있음 / 아빠 말: 지온 15도 넘을 때 심어야 함">${esc(k.memo)}</textarea>
@@ -709,6 +790,7 @@ function renderDesk(force) {
         </div>
       </div>` : ""}`;
 
+  wireTrend(k);
   $("memo").oninput = e => Store.saveMemoSoon(k.id, e.target.value);
   desk.querySelectorAll("[data-voice]").forEach(b => b.onclick = () => { state.voice = b.dataset.voice; renderDesk(); });
   desk.querySelectorAll("[data-tier]").forEach(b => b.onclick = () => { state.tier = b.dataset.tier; renderDesk(); });

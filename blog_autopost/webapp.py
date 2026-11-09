@@ -27,9 +27,16 @@ def build_data(cfg: Config) -> dict:
             rows.append([k.id, t.key, k.month, k.week, k.category, k.keyword, k.title, k.intent,
                          k.peak_month, k.priority, k.monetize, k.status])
     greeting = next((t.greeting for t in cfg.topics.values() if t.greeting), "")
+    from .datalab import read_trends
+
+    trends_raw = read_trends(cfg.root / "keywords" / "trends.csv")
+    trends = {kid: [t["volume"], t["peak_month"], t["next2"], t["yoy"], t["by_month"]]
+              for kid, t in trends_raw.items() if len(t["by_month"]) == 12}
+    first = next(iter(trends_raw.values()), None)
+    trend_meta = {"anchor": first["anchor"], "fetched": first["fetched"]} if first else None
     voices = {key: (cfg.root / path).read_text(encoding="utf-8").strip() for key, path in VOICES.items()}
     return {"built": date.today().isoformat(), "greeting": greeting, "topics": topics,
-            "keywords": rows, "voices": voices}
+            "keywords": rows, "voices": voices, "trends": trends, "trendMeta": trend_meta}
 
 
 def build_web(cfg: Config, template: Path | None = None, out: Path | None = None) -> Path:
