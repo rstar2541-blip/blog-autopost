@@ -73,8 +73,8 @@ button { cursor: pointer; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { border: 1px solid var(--line); background: transparent; border-radius: 99px; padding: 4px 10px; font-size: 12.5px; }
 .chip[aria-pressed="true"] { background: var(--leaf); border-color: var(--leaf); color: var(--panel); }
-.months { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px; }
-.months button { flex: 0 0 auto; border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 3px 8px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.months { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.months button { min-width: 0; border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 3px 0; font-size: 12px; font-variant-numeric: tabular-nums; }
 .months button[aria-pressed="true"] { border-color: var(--leaf); color: var(--leaf); font-weight: 600; }
 .months button.now::after { content: "•"; color: var(--naver); margin-left: 2px; }
 .list { list-style: none; margin: 0; padding: 6px; max-height: 70vh; overflow-y: auto; }
@@ -162,7 +162,7 @@ textarea { resize: vertical; min-height: 92px; line-height: 1.5; }
 .publish-row input { flex: 1 1 220px; }
 /* 검색 추이 */
 .kw .vol { grid-column: 2; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.kw .vol.low { color: var(--warn); }
+.kw .vol.low { color: var(--muted); font-style: italic; }
 .trend { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px 8px; position: relative; }
 .trend-h { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; font-size: 13px; }
 .trend-h span { color: var(--muted); font-size: 12px; }
@@ -216,7 +216,8 @@ const STATUS_LABEL = { todo: "예정", draft: "초안", published: "발행", ski
 // 데이터랩 검색 추이: id -> [최근1년 지수, 최다 달, 다음 두 달 지수, 작년 대비 %, 1~12월 평균]
 const TREND = DATA.trends || {};
 const HAS_TRENDS = Object.keys(TREND).length > 0;
-const trendOf = id => { const t = TREND[id]; return t ? { volume: t[0], peak: t[1], next2: t[2], yoy: t[3], byMonth: t[4] } : null; };
+// shape: 한 달이라도 검색이 잡혔는지. volume < 1 이어도 shape 가 있으면 어느 달에 찾는지는 알 수 있음
+const trendOf = id => { const t = TREND[id]; return t ? { volume: t[0], peak: t[1], next2: t[2], yoy: t[3], byMonth: t[4], shape: t[4].some(v => v > 0) } : null; };
 const fmtVol = v => v >= 10 ? Math.round(v).toString() : v >= 1 ? v.toFixed(1) : v > 0 ? "1 미만" : "0";
 const INTENT_GUIDE = {
   "정보": "검색한 사람이 바로 따라 할 수 있게 시기·방법·순서를 구체적으로 정리한다.",
@@ -583,7 +584,8 @@ function kwButton(k) {
     <span class="t"><b>${esc(k.keyword)}</b><small>${esc(TOPIC[k.topic]?.label || "")} · ${esc(k.title)}</small></span>
     <span class="pill ${k.status}">${STATUS_LABEL[k.status] || k.status}</span>${(() => {
       const tr = trendOf(k.id); if (!tr) return "";
-      return tr.volume < 1 ? `<span class="vol low">검색 적음 · 데이터랩 수치 없음</span>`
+      if (!tr.shape) return `<span class="vol low">검색 아주 적음 · 월별 수치 없음</span>`;
+      return tr.volume < 1 ? `<span class="vol low">검색 적음 · 최다 ${tr.peak}월</span>`
         : `<span class="vol">검색 지수 ${fmtVol(tr.volume)} · 최다 ${tr.peak}월</span>`;
     })()}`;
   b.onclick = () => {
@@ -626,8 +628,9 @@ function trendBox(k) {
   if (!HAS_TRENDS) return "";
   const tr = trendOf(k.id);
   const meta = DATA.trendMeta || {};
-  if (!tr) return `<div class="trend"><p class="trend-sum">캘린더에 없는 키워드라 검색 추이가 없어요. 터미널에서 <b>python -m blog_autopost trends compare "${esc(k.keyword)}"</b>로 확인할 수 있어요.</p></div>`;
-  if (tr.volume < 1) return `<div class="trend"><p class="trend-sum">이 문구는 검색이 적어서 <b>데이터랩이 수치를 주지 않아요</b>. 경쟁이 적은 롱테일이라 써도 좋지만, 성수기는 더 짧은 대표 검색어로 확인해 보세요: <b>python -m blog_autopost trends compare "${esc(k.keyword.split(" ").slice(0, 2).join(" "))}"</b></p></div>`;
+  if (!tr) return `<div class="trend"><p class="trend-sum">캘린더에 없는 키워드라 검색 추이를 아직 받지 않았어요. Claude Code 대화창에 <b>"${esc(k.keyword)}" 검색 추이 확인해줘</b>라고 하면 데이터랩에서 찾아 드려요.</p></div>`;
+  if (!tr.shape) return `<div class="trend"><p class="trend-sum">이 문구(<b>${esc(k.keyword)}</b>)는 최근 3년 동안 검색이 네이버 데이터랩 집계 기준에 못 미쳐서 월별 그래프가 없어요. 이렇게 긴 문구는 보통 경쟁 글도 적어서, 그대로 검색한 사람에게 닿기 쉬워요. 성수기는 캘린더에 적은 <b>${k.peak}월</b>을 따랐어요.</p></div>`;
+  const low = tr.volume < 1;
   const W = 360, H = 120, top = 16, base = 86, slot = W / 12, bw = Math.min(22, slot - 6);
   const max = Math.max(...tr.byMonth, 0.0001);
   const bars = tr.byMonth.map((v, i) => {
@@ -643,18 +646,18 @@ function trendBox(k) {
   }).join("");
   const pub = k.custom ? "" : `<text x="${(k.month - 0.5) * slot}" y="${base + 28}" text-anchor="middle" class="on">발행</text>`;
   const peakTag = `<text x="${(tr.peak - 0.5) * slot}" y="${base + 28 + (k.month === tr.peak && !k.custom ? 12 : 0)}" text-anchor="middle" class="on">최다</text>`;
-  const yoy = tr.yoy == null ? "" : ` · 작년 같은 때보다 <b>${tr.yoy > 0 ? "+" : ""}${Math.round(tr.yoy)}%</b>`;
+  const yoy = tr.yoy == null || low ? "" : ` · 작년 같은 때보다 <b>${tr.yoy > 0 ? "+" : ""}${Math.round(tr.yoy)}%</b>`;
   return `<div class="trend" id="trend">
-    <div class="trend-h"><b>월별 검색 추이 (네이버 데이터랩)</b><span>최근 3년 평균 · 기준 '${esc(meta.anchor || "")}' 1년 평균 = 100</span></div>
+    <div class="trend-h"><b>월별 검색 추이 (네이버 데이터랩)</b><span>${low ? "검색 적음 · 막대는 이 키워드 안에서 달끼리 비교" : `최근 3년 평균 · 기준 '${esc(meta.anchor || "")}' 1년 평균 = 100`}</span></div>
     <svg viewBox="0 -4 ${W} ${H + 12}" role="img" aria-label="1월부터 12월까지 검색 지수. 가장 많은 달 ${tr.peak}월">
       ${bars}
-      <text x="${peakX}" y="${peakY}" text-anchor="middle" class="on">${fmtVol(tr.byMonth[tr.peak - 1])}</text>
+      ${low ? "" : `<text x="${peakX}" y="${peakY}" text-anchor="middle" class="on">${fmtVol(tr.byMonth[tr.peak - 1])}</text>`}
       <line x1="0" x2="${W}" y1="${base}" y2="${base}" stroke="var(--line)" stroke-width="1"></line>
       ${labels}${pub}${peakTag}
       <rect id="trend-hit" x="0" y="0" width="${W}" height="${base}" fill="transparent"></rect>
     </svg>
     <div class="tip" id="trend-tip" hidden></div>
-    <p class="trend-sum">최근 1년 검색 지수 <b>${fmtVol(tr.volume)}</b> · 가장 많이 찾는 달 <b>${tr.peak}월</b>${yoy}${k.custom ? "" : ` · 발행 예정 <b>${k.month}월</b>`}</p>
+    <p class="trend-sum">${low ? `검색이 적은 문구예요 (기준 '${esc(meta.anchor || "")}'의 1% 미만). 그래도 찾는 사람은 <b>${tr.peak}월</b>에 가장 많아요` : `최근 1년 검색 지수 <b>${fmtVol(tr.volume)}</b> · 가장 많이 찾는 달 <b>${tr.peak}월</b>`}${yoy}${k.custom ? "" : ` · 발행 예정 <b>${k.month}월</b>`}</p>
   </div>`;
 }
 function wireTrend(k) {
